@@ -1,0 +1,95 @@
+/* Ink Kit - ink-card-style-kit.css, copied from Ryan's design system (claude.ai artifact GwyoRGkBjSfz5ccbHKhz5m).
+   Fonts are linked in app/layout.tsx. App-specific additions live in globals.css. */
+
+/* Ink Kit — ink-card-style-kit.css. One colour, a heavy 2px border, pill controls. */
+
+.ink-root { background: var(--ink-100); color: var(--ink-black); font-family: var(--font-sans); margin: 0; -webkit-font-smoothing: antialiased; }
+.ink-root *, .ink-root *::before, .ink-root *::after { box-sizing: border-box; }
+
+/* ---------- Utilities ---------- */
+.eyebrow { font: 500 11px/1.4 var(--font-sans); letter-spacing: .18em; text-transform: uppercase; color: var(--ink-700); }
+.mono { font-family: var(--font-mono); }
+.serif { font-family: var(--font-serif); }
+.muted { color: var(--ink-700); }
+.caption { color: var(--ink-500); }
+.num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--radius-pill); background: var(--ink-black); color: var(--ink-white); font: 700 14px/1 var(--font-sans); flex: none; }
+.ink-h1 { font: 800 72px/.95 var(--font-sans); letter-spacing: -.04em; margin: 0; }
+.ink-h2 { display: flex; align-items: center; gap: var(--space-3); font: 700 36px/1.1 var(--font-sans); letter-spacing: -.02em; margin: 0; }
+.ink-lede { font: 400 22px/1.65 var(--font-sans); letter-spacing: -.01em; color: var(--ink-700); max-width: 44em; }
+.ink-code { font: 400 .9em/1 var(--font-mono); border: var(--border-heavy) solid var(--ink-black); border-radius: var(--radius-md); padding: 2px 6px; color: var(--ink-black); background: var(--ink-white); }
+.rule { border: 0; border-top: var(--border-heavy) solid var(--ink-900); margin: 0; }
+.hairline { border: 0; border-top: var(--border-hairline) solid var(--ink-300); margin: 0; }
+
+/* ---------- Buttons ---------- */
+.ink-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; padding: 0 18px; border: var(--border-heavy) solid var(--ink-black); border-radius: var(--radius-pill); background: var(--ink-white); color: var(--ink-black); font: 600 15px/1 var(--font-sans); cursor: pointer; text-decoration: none; white-space: nowrap; }
+.ink-btn:hover { background: var(--ink-200); }
+.ink-btn:focus-visible { outline: var(--border-heavy) solid var(--ink-black); outline-offset: 3px; }
+.ink-btn--primary { background: var(--ink-black); color: var(--ink-white); }
+.ink-btn--primary:hover { background: var(--ink-700); border-color: var(--ink-700); }
+.ink-btn--ghost { border-color: transparent; background: transparent; }
+.ink-btn--inverse { background: var(--ink-white); color: var(--ink-black); border-color: var(--ink-white); border-radius: var(--radius-md); height: 32px; padding: 0 12px; font-size: 14px; font-weight: 700; }
+.ink-btn--sm { height: 32px; padding: 0 14px; font-size: 13px; }
+.ink-btn--lg { height: 48px; padding: 0 24px; font-size: 17px; }
+.ink-btn:disabled, .ink-btn[aria-disabled="true"] { background: var(--ink-100); border-color: var(--ink-300); color: var(--ink-500); cursor: not-allowed; }
+
+/* ---------- Chips ---------- */
+.ink-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: var(--border-heavy) solid var(--ink-black); border-radius: var(--radius-pill); background: var(--ink-white); color: var(--ink-black); font: 500 14px/1 var(--font-sans); cursor: pointer; }
+.ink-chip.is-active, .ink-chip[aria-pressed="true"] { background: var(--ink-black); color: var(--ink-white); font-weight: 600; }
+.ink-chip__count { font: 500 12px/1 var(--font-mono); }
+
+/* ---------- Badges & tags ---------- */
+.ink-badge { display: inline-flex; align-items: center; height: 24px; padding: 0 7px; border-radius: var(--radius-md); background: var(--ink-black); color: var(--ink-white); font: 500 12px/1 var(--font-mono); white-space: nowrap; }
+.ink-badge--outline { background: var(--ink-white); color: var(--ink-black); border: var(--border-heavy) solid var(--ink-black); }
+.ink-tag { display: inline-flex; align-items: center; height: 20px; padding: 0 5px; border: var(--border-hairline) solid var(--ink-900); border-radius: var(--radius-sm); color: var(--ink-700); font: 500 12px/1 var(--font-mono); background: var(--ink-white); }
+
+/* ---------- Cards ---------- */
+.ink-card { background: var(--ink-white); border: var(--border-heavy) solid var(--ink-900); border-radius: var(--radius-lg); overflow: hidden; }
+.ink-card__head { display: flex; justify-content: space-between; align-items: center; background: var(--ink-black); color: var(--ink-white); padding: 12px var(--space-6); font: 700 17px/1.3 var(--font-sans); }
+.ink-card__media { height: 128px; border-bottom: var(--border-heavy) solid var(--ink-900); }
+.ink-card__body { padding: var(--space-6); }
+.ink-card__title { font: 500 18px/1.3 var(--font-mono); margin: 0 0 6px; }
+.ink-card__meta { font: 400 15px/1.5 var(--font-sans); color: var(--ink-500); margin: 0; }
+
+/* ---------- E-ink panel ---------- */
+.eink { background: var(--ink-white); border: var(--border-heavy) solid var(--ink-black); border-radius: var(--radius-xl); overflow: hidden; color: var(--ink-black); font-family: var(--font-sans); }
+.eink__bar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); min-height: 58px; padding: var(--space-3) var(--space-6); background: var(--ink-black); color: var(--ink-white); font: 700 22px/1.2 var(--font-sans); letter-spacing: -.01em; }
+.eink__bar-right { font: 500 13px/1 var(--font-mono); color: var(--ink-300); letter-spacing: 0; }
+.eink__body { padding: var(--space-4) var(--space-6) var(--space-6); }
+.eink__list, .eink__ticker { list-style: none; margin: 0; padding: 0; }
+.eink__list li { display: flex; gap: var(--space-4); align-items: baseline; padding: var(--space-3) 0; border-bottom: var(--border-heavy) solid var(--ink-black); font: 500 19px/1.3 var(--font-sans); }
+.eink__list .n { font: 600 14px/1 var(--font-mono); min-width: 20px; }
+.eink__list .sub, .eink__ticker .sub { display: block; font: 400 13px/1.4 var(--font-mono); color: var(--ink-700); margin-top: 4px; }
+.eink__ticker li { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: var(--border-heavy) solid var(--ink-black); }
+.eink__ticker .name { font: 500 22px/1.2 var(--font-sans); letter-spacing: -.01em; }
+.eink__ticker .code { display: flex; align-items: center; gap: 6px; margin-top: 4px; font: 500 13px/1 var(--font-mono); color: var(--ink-700); }
+.eink__ticker .code[data-mkt]::before { content: attr(data-mkt); display: inline-flex; align-items: center; height: 22px; padding: 0 5px; border: var(--border-hairline) solid var(--ink-900); border-radius: var(--radius-sm); color: var(--ink-700); }
+.eink__ticker .row { display: flex; align-items: center; gap: var(--space-6); }
+.eink__ticker .px { font: 400 26px/1 var(--font-mono); }
+.eink__ticker .chg { display: inline-flex; align-items: center; height: 30px; padding: 0 7px; border-radius: var(--radius-md); background: var(--ink-black); color: var(--ink-white); font: 500 14px/1 var(--font-mono); min-width: 80px; justify-content: center; }
+.eink__foot { display: flex; gap: var(--space-6); align-items: center; padding: 8px var(--space-6); background: var(--ink-black); color: var(--ink-white); font: 400 15px/1.3 var(--font-mono); }
+.eink__foot b { font-weight: 600; }
+.eink__text { font: 800 40px/1.05 var(--font-sans); letter-spacing: -.03em; margin: var(--space-3) 0; }
+.eink__quote { font: 400 22px/1.4 var(--font-serif); color: var(--ink-700); margin: 0; }
+.eink__empty { display: grid; place-items: center; gap: var(--space-2); text-align: center; padding: 40px var(--space-6); color: var(--ink-700); font: 400 15px/1.5 var(--font-sans); }
+.eink__empty b { color: var(--ink-black); font: 700 20px/1.2 var(--font-sans); }
+
+/* ---------- Lists ---------- */
+.ink-list { list-style: none; margin: 0; padding: 0; background: var(--ink-white); border-top: var(--border-heavy) solid var(--ink-900); }
+.ink-list li, .ink-list a { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); min-height: 56px; padding: var(--space-3) var(--space-6); border-bottom: var(--border-heavy) solid var(--ink-900); color: var(--ink-black); text-decoration: none; font: 400 19px/1.3 var(--font-sans); }
+.ink-list li:has(> a) { padding: 0; display: block; min-height: 0; border-bottom: 0; }
+.ink-list--nav a::after { content: "\203A"; color: var(--ink-700); font-size: 18px; }
+.ink-list a:hover, .ink-list a.is-active { background: var(--ink-200); }
+.ink-list__meta { font: 400 13px/1 var(--font-mono); color: var(--ink-700); }
+.ink-list__group { display: block; padding: var(--space-8) var(--space-6) var(--space-3); }
+
+/* ---------- Empty state ---------- */
+.ink-empty { display: grid; justify-items: center; gap: var(--space-3); padding: 48px var(--space-6); text-align: center; background: var(--ink-white); border: var(--border-heavy) dashed var(--ink-300); border-radius: var(--radius-lg); }
+.ink-empty__glyph { width: 56px; height: 56px; border: var(--border-heavy) solid var(--ink-black); border-radius: var(--radius-pill); display: grid; place-items: center; font: 600 22px/1 var(--font-mono); }
+.ink-empty__title { font: 700 22px/1.2 var(--font-sans); letter-spacing: -.01em; margin: 0; }
+.ink-empty__text { font: 400 16px/1.5 var(--font-sans); color: var(--ink-700); margin: 0; max-width: 32em; }
+
+/* ---------- Tab bar ---------- */
+.ink-tabbar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--ink-white); border-top: var(--border-heavy) solid var(--ink-black); }
+.ink-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 14px 8px; border: 0; background: transparent; color: var(--ink-700); font: 500 15px/1 var(--font-sans); cursor: pointer; text-decoration: none; }
+.ink-tab svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2; }
+.ink-tab.is-active, .ink-tab[aria-current="page"] { background: var(--ink-black); color: var(--ink-white); font-weight: 700; }

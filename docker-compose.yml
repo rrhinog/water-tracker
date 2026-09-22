@@ -1,0 +1,49 @@
+# Water Tracker — two containers from one image.
+#
+#   live     http://127.0.0.1:4210   (main branch)
+#   staging  http://127.0.0.1:4211   (feature branch under test)
+#
+# Phone access: add your LAN/Tailscale address in docker-compose.override.yml (gitignored,
+# see README). Compose merges it automatically.
+#
+# Deploy with scripts/deploy.ps1 live|staging — it builds the image, recreates the
+# container, and probes the URL. A file edit is not a deploy until that script runs.
+#
+# Binding order matters if you add a second address in the override: keep 127.0.0.1 first.
+# Docker aborts all bindings if the first one fails, and a VPN address can be late at boot.
+
+services:
+  live:
+    build: .
+    image: water-tracker:live
+    container_name: water-tracker
+    env_file: .env
+    environment:
+      - PORT=4210
+      - DATABASE_URL=postgresql://mainframe:${POSTGRES_PASSWORD}@postgres:5432/water_tracker
+    networks:
+      - lifeos
+    ports:
+      - "127.0.0.1:4210:4210"
+    restart: unless-stopped
+
+  staging:
+    build: .
+    image: water-tracker:staging
+    container_name: water-tracker-staging
+    env_file: .env
+    environment:
+      - PORT=4211
+      # Same database as live: staging previews CODE over real data. During the import
+      # trial this pointed at water_tracker_staging (a throwaway copy).
+      - DATABASE_URL=postgresql://mainframe:${POSTGRES_PASSWORD}@postgres:5432/water_tracker
+    networks:
+      - lifeos
+    ports:
+      - "127.0.0.1:4211:4211"
+    restart: unless-stopped
+
+networks:
+  lifeos:
+    name: lifeos-network
+    external: true

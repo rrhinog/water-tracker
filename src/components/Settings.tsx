@@ -18,6 +18,7 @@ export default function Settings() {
   const [baseline, setBaseline] = useState<SettingsT>(settings);
   const [newName, setNewName] = useState("");
   const [newSize, setNewSize] = useState("");
+  const [newFlavour, setNewFlavour] = useState("");
 
   // Adopt a server/other-device copy unless the user is mid-edit (React's adjust-on-prop-change pattern).
   const [seen, setSeen] = useState<SettingsT>(settings);
@@ -116,6 +117,23 @@ export default function Settings() {
         </div>
 
         <section className="ink-card">
+          <div className="ink-card__head"><span>Flavours</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>coffee</span></div>
+          <ul className="ink-list" style={{ borderTop: 0 }}>
+            {draft.flavours.map((f, i) => (
+              <li key={i} style={{ minHeight: 56, padding: "8px 16px", gap: 8 }}>
+                <input aria-label={`Flavour ${i + 1}`} value={f} onChange={(e) => patch({ flavours: draft.flavours.map((x, j) => (j === i ? e.target.value : x)) })} className="ink-input min-w-0 flex-1" />
+                <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" onClick={() => patch({ flavours: draft.flavours.filter((_, j) => j !== i) })} aria-label={`Remove flavour ${f}`}>{"✕"}</button>
+              </li>
+            ))}
+            <li style={{ minHeight: 56, padding: "8px 16px", gap: 8, borderBottom: 0 }}>
+              <input aria-label="New flavour" placeholder="Pod or place" value={newFlavour} onChange={(e) => setNewFlavour(e.target.value)} className="ink-input min-w-0 flex-1" />
+              <button type="button" className="ink-btn" disabled={!newFlavour.trim()} onClick={() => { patch({ flavours: [...draft.flavours, newFlavour.trim()] }); setNewFlavour(""); }}>Add</button>
+            </li>
+          </ul>
+          <p style={{ margin: 0, padding: "10px 16px 14px", font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>Logging a coffee uses your last flavour; change it on the open coffee. Past coffees keep the name they were logged with.</p>
+        </section>
+
+        <section className="ink-card">
           <div className="ink-card__head"><span>Colour</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>one accent</span></div>
           <div className="ink-card__body flex flex-col gap-3" style={{ padding: 16 }}>
             <div className="flex flex-wrap items-center gap-2.5" role="group" aria-label="Accent colour">
@@ -188,5 +206,7 @@ function validate(s: SettingsT): string[] {
   if (!(s.floorOz > 0)) out.push("Daily floor must be greater than 0");
   if (s.paceEndH <= s.paceStartH) out.push("The day must end after it starts");
   if (!accentReadable(s.accent)) out.push("Accent is too light for white text (needs 4.5:1)");
+  if (s.flavours.some((f) => !f.trim())) out.push("Every flavour needs a name");
+  if (new Set(s.flavours.map((f) => f.trim())).size !== s.flavours.length) out.push("Flavours must be unique");
   return out;
 }

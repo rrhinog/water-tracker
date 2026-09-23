@@ -22,6 +22,8 @@ export interface Settings {
   defaultPaceMode: PaceMode;
   /** The one accent colour (the kit's ink-signal), a #rrggbb that passes 4.5:1 under white. */
   accent: string;
+  /** Coffee flavours (Keurig pods, or "Bought out") offered when logging. Order = chip order. */
+  flavours: string[];
 }
 
 /** First-run defaults (the author's setup). Change them in Settings, not here. */
@@ -37,6 +39,7 @@ export const DEFAULT_SETTINGS: Settings = {
   paceEndH: 21,
   defaultPaceMode: "history",
   accent: DEFAULT_ACCENT,
+  flavours: ["BRCC Spirit of '76", "Starbucks Vanilla", "Starbucks French Roast", "Bought out"],
 };
 
 export const ML_PER_OZ = 29.5735;
@@ -78,7 +81,10 @@ export function normalizeSettings(raw: unknown): Settings {
   }
   const defaultPaceMode: PaceMode = r.defaultPaceMode === "even" ? "even" : "history";
   const accent = typeof r.accent === "string" && accentReadable(r.accent.toLowerCase()) ? r.accent.toLowerCase() : DEFAULT_ACCENT;
-  return { bottles: bottles.length ? bottles : DEFAULT_SETTINGS.bottles, floorOz, unit, paceStartH, paceEndH, defaultPaceMode, accent };
+  const flavours = Array.isArray(r.flavours)
+    ? [...new Set((r.flavours as unknown[]).filter((f): f is string => typeof f === "string").map((f) => f.trim()).filter(Boolean))].slice(0, 24)
+    : DEFAULT_SETTINGS.flavours;
+  return { bottles: bottles.length ? bottles : DEFAULT_SETTINGS.bottles, floorOz, unit, paceStartH, paceEndH, defaultPaceMode, accent, flavours };
 }
 
 /** A stable id for a new bottle from its name (falls back to a random suffix on collision). */

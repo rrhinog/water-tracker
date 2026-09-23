@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Shell from "@/components/Shell";
-import { coffeeHistory, coffeeMonths, coffeesByDay, coffeeStatus, formatMinutes, sipWindow } from "@/lib/coffee";
+import { coffeeHistory, coffeeMonths, coffeesByDay, coffeesByFlavour, coffeeStatus, formatMinutes, sipWindow } from "@/lib/coffee";
 import { addDays, buildDays, chartBars, firstBottleTable, monthCells, periodStats, streaks, type Period } from "@/lib/history";
 import { dayKey } from "@/lib/log";
 import { toUnit, unitLabel } from "@/lib/settings";
@@ -61,6 +61,7 @@ export default function History() {
   const [showAll, setShowAll] = useState(false);
   const cLog = [...coffees].sort((a, b) => b.at.localeCompare(a.at));
   const cShown = showAll ? cLog : cLog.slice(0, 20);
+  const cFlavours = coffeesByFlavour(coffees);
   const trackedInMonth = cells.filter((c) => c.state !== "none").length;
 
   return (
@@ -207,6 +208,17 @@ export default function History() {
               </div>
 
               <div className="ink-card">
+                <div className="ink-card__head"><span>By flavour</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>all time</span></div>
+                <ul className="ink-list" style={{ borderTop: 0 }}>
+                  {cFlavours.map((f, i, arr) => (
+                    <li key={f.flavour} style={{ fontSize: 15, minHeight: 44, borderBottom: i === arr.length - 1 ? 0 : undefined }}>
+                      <span>{f.flavour}</span><span className="ink-badge">{f.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="ink-card">
                 <div className="ink-card__head"><span>By month</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{cMonths.length} months</span></div>
                 <table className="w-full" style={{ fontSize: 15 }}>
                   <thead><tr className="eyebrow" style={{ textAlign: "left" }}><th style={{ padding: "10px 24px 6px", fontWeight: 500 }}>month</th><th style={{ textAlign: "right", fontWeight: 500 }}>coffees</th><th style={{ textAlign: "right", fontWeight: 500 }}>coffee days</th><th style={{ textAlign: "right", padding: "10px 24px 6px", fontWeight: 500 }}>free days</th></tr></thead>
@@ -236,7 +248,7 @@ export default function History() {
                       return (
                         <li key={c.id} style={{ fontSize: 15, minHeight: 48, borderBottom: i === arr.length - 1 && showAll ? 0 : undefined }}>
                           <span>
-                            {DATE_FMT.format(at)}
+                            {DATE_FMT.format(at)}{c.flavour ? ` \u00B7 ${c.flavour}` : ""}
                             <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
                               {c.fromNotes ? "from notes" : TIME_FMT.format(at)}
                               {(() => { const w = sipWindow(c, now); return w ? ` · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : c.fromNotes ? "" : " · open"; })()}

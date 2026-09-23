@@ -125,4 +125,13 @@ describe("Tracker", () => {
     const stored = JSON.parse(window.localStorage.getItem("water.coffee.v1")!);
     expect(stored[0].finishedAt).toBeDefined();
   });
+
+  it("logs with the first flavour by default and lets the open coffee change it", () => {
+    render(<Tracker />);
+    fireEvent.click(screen.getByRole("button", { name: "Coffee" }));
+    expect(screen.getAllByText(/BRCC Spirit of '76/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Starbucks Vanilla" })[0]);
+    const stored = JSON.parse(window.localStorage.getItem("water.coffee.v1")!);
+    expect(stored[0].flavour).toBe("Starbucks Vanilla");
+  });
 });

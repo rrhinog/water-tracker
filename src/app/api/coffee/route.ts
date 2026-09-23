@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const rows = await getDb().select().from(coffeeEntries).orderBy(coffeeEntries.at);
   return NextResponse.json(
-    rows.map((r) => ({ id: r.id, at: r.at.toISOString(), fromNotes: r.fromNotes, finishedAt: r.finishedAt ? r.finishedAt.toISOString() : undefined })),
+    rows.map((r) => ({ id: r.id, at: r.at.toISOString(), fromNotes: r.fromNotes, finishedAt: r.finishedAt ? r.finishedAt.toISOString() : undefined, flavour: r.flavour ?? undefined })),
   );
 }
 
@@ -16,6 +16,7 @@ interface Incoming {
   at: string;
   fromNotes?: boolean;
   finishedAt?: string | null;
+  flavour?: string | null;
 }
 
 export async function POST(req: Request) {
@@ -24,10 +25,10 @@ export async function POST(req: Request) {
   if (list.length === 0) return NextResponse.json({ upserted: 0 });
   await getDb()
     .insert(coffeeEntries)
-    .values(list.map((c) => ({ id: c.id, at: new Date(c.at), fromNotes: c.fromNotes ?? false, finishedAt: c.finishedAt ? new Date(c.finishedAt) : null })))
+    .values(list.map((c) => ({ id: c.id, at: new Date(c.at), fromNotes: c.fromNotes ?? false, finishedAt: c.finishedAt ? new Date(c.finishedAt) : null, flavour: c.flavour ?? null })))
     .onConflictDoUpdate({
       target: coffeeEntries.id,
-      set: { at: sql`excluded.at`, fromNotes: sql`excluded.from_notes`, finishedAt: sql`excluded.finished_at` },
+      set: { at: sql`excluded.at`, fromNotes: sql`excluded.from_notes`, finishedAt: sql`excluded.finished_at`, flavour: sql`excluded.flavour` },
     });
   return NextResponse.json({ upserted: list.length });
 }

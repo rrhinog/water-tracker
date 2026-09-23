@@ -68,8 +68,13 @@ describe("brew timer", () => {
     expect(sipWindow(c, later)).toEqual({ minutes: 720, assumed: true });
   });
 
-  it("imported note days have no window", () => {
+  it("an imported coffee with no recorded finish has no window, not an assumed one", () => {
     expect(sipWindow({ id: "n", at: "2026-09-01T12:00:00", fromNotes: true }, new Date(2026, 8, 22))).toBeNull();
+  });
+
+  it("an imported coffee with a finish time from the notes gets a real window", () => {
+    const c = { id: "n", at: "2026-07-25T06:06:00", finishedAt: "2026-07-25T08:40:00", fromNotes: true };
+    expect(sipWindow(c, new Date(2026, 8, 22))).toEqual({ minutes: 154, assumed: false });
   });
 });
 

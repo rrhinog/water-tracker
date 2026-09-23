@@ -250,8 +250,8 @@ export default function History() {
                           <span>
                             {DATE_FMT.format(at)}{c.flavour ? ` \u00B7 ${c.flavour}` : ""}
                             <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
-                              {c.fromNotes ? "from notes" : TIME_FMT.format(at)}
-                              {(() => { const w = sipWindow(c, now); return w ? ` · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : c.fromNotes ? "" : " · open"; })()}
+                              {TIME_FMT.format(at)}
+                              {(() => { const w = sipWindow(c, now); return w ? ` · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : c.fromNotes ? " · from notes" : " · open"; })()}
                             </span>
                           </span>
                           <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label={`Remove coffee on ${c.at.slice(0, 10)}`} onClick={() => removeCoffee(c.id)}>{"\u2715"}</button>

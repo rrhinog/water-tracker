@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
 import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
+import { bottleDurations, drinks, formatDuration, isStart, makeStartEntry } from "@/lib/duration";
 import { clearedDayProfiles } from "@/lib/history";
 import { dayKey, entriesForDay, makeCustomEntry, makeEntry, recentCustomAmounts, totalOz } from "@/lib/log";
 import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
@@ -69,7 +70,11 @@ export default function Tracker() {
   const customValid = customText !== "" && customValue > 0;
   const customOz = customValid ? fromUnit(customValue, unit) : 0;
   const recents = recentCustomAmounts(entries);
-  const firstAt = today.length > 0 ? new Date(today[0].at) : null;
+  const todayDrinks = drinks(today);
+  const firstAt = todayDrinks.length > 0 ? new Date(todayDrinks[0].at) : null;
+  // "Started bottle" only matters before the first finish; after that, each finish is the next bottle's start.
+  const canStart = todayDrinks.length === 0 && !today.some(isStart);
+  const durations = bottleDurations(today);
   const ownCurve = curveFromDays(clearedDayProfiles(entries, floorOz));
   const pace = paceStatus(paceMode, total, now, firstAt, floorOz, window, ownCurve);
   const coffee = coffeeStatus(coffees, now);
@@ -233,6 +238,12 @@ export default function Tracker() {
                       Log {fmt(logOz, unit)}
                       <span style={{ font: "500 13px/1 var(--font-mono)", opacity: 0.75, marginLeft: 8, textTransform: "uppercase" }}>{fractionLabel(fraction)} {bottle.name}</span>
                     </button>
+                    {canStart && (
+                      <button type="button" className="ink-btn ink-btn--ghost" style={{ height: 44 }} onClick={() => addEntry(makeStartEntry(new Date()))}>
+                        Started bottle
+                        <span style={{ font: "500 12px/1 var(--font-mono)", color: "var(--ink-700)", marginLeft: 8 }}>times the first one</span>
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -265,24 +276,28 @@ export default function Tracker() {
             <section className="ink-card">
               <div className="ink-card__head">
                 <span>Logged today</span>
-                <span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{today.length} {today.length === 1 ? "drink" : "drinks"}</span>
+                <span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{todayDrinks.length} {todayDrinks.length === 1 ? "drink" : "drinks"}</span>
               </div>
               {today.length === 0 ? (
                 <div className="ink-card__body"><p className="ink-empty__text" style={{ margin: 0 }}>Nothing yet.</p></div>
               ) : (
                 <ul className="ink-list" style={{ borderTop: 0 }}>
-                  {[...today].reverse().map((e, i, arr) => (
-                    <li key={e.id} style={{ fontSize: 16, minHeight: 52, borderBottom: i === arr.length - 1 ? 0 : undefined }}>
-                      <span>
-                        {sourceName(bottles, e.bottleId)}{e.bottleId !== "other" && ` ${fractionLabel(e.fraction).toLowerCase()}`}
-                        <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>{TIME_FMT.format(new Date(e.at))}</span>
-                      </span>
-                      <span className="flex items-center gap-3">
-                        <span className="mono" style={{ fontSize: 15 }}>{fmt(e.oz, unit)}</span>
-                        <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label={`Remove ${e.oz} oz entry`} onClick={() => removeEntry(e.id)}>{"✕"}</button>
-                      </span>
-                    </li>
-                  ))}
+                  {[...today].reverse().map((e, i, arr) => {
+                    const d = durations.get(e.id);
+                    const durationWord = d ? ` · ${formatDuration(d.minutes)}${d.ozPerHour !== null ? ` · ${toUnit(d.ozPerHour, unit)} ${u}/h` : ""}` : "";
+                    return (
+                      <li key={e.id} style={{ fontSize: 16, minHeight: 52, borderBottom: i === arr.length - 1 ? 0 : undefined }}>
+                        <span>
+                          {isStart(e) ? "Started bottle" : <>{sourceName(bottles, e.bottleId)}{e.bottleId !== "other" && ` ${fractionLabel(e.fraction).toLowerCase()}`}</>}
+                          <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>{TIME_FMT.format(new Date(e.at))}{durationWord}</span>
+                        </span>
+                        <span className="flex items-center gap-3">
+                          {!isStart(e) && <span className="mono" style={{ fontSize: 15 }}>{fmt(e.oz, unit)}</span>}
+                          <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label={isStart(e) ? "Remove bottle start" : `Remove ${e.oz} oz entry`} onClick={() => removeEntry(e.id)}>{"✕"}</button>
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>

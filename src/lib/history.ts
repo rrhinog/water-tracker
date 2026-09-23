@@ -1,6 +1,7 @@
 // History + analytics over the bundled backfill and what the app has logged since.
 // Pure functions, no browser APIs.
 import { DAILY_FLOOR_OZ, dayKey, type Entry } from "./log";
+import { isStart } from "./duration";
 import { CURVE_HOURS, formatHour, type DayProfile } from "./pace";
 
 export interface DaySummary {
@@ -21,7 +22,7 @@ export function buildDays(entries: readonly Entry[], floorOz: number = DAILY_FLO
   const days = new Map<string, DaySummary>();
   for (const [k, list] of byDay) {
     const total = Math.round(list.reduce((a, e) => a + e.oz, 0) * 10) / 10;
-    const timed = list.filter((e) => !e.untimed);
+    const timed = list.filter((e) => !e.untimed && !isStart(e)); // a start marker is not a drink
     const first = timed.length ? timed.reduce((a, e) => (e.at < a ? e.at : a), timed[0].at) : null;
     days.set(k, { day: k, totalOz: total, cleared: total >= floorOz, firstHour: first ? hourOfIso(first) : null });
   }

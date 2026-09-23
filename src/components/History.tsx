@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Shell from "@/components/Shell";
-import { coffeeHistory, coffeeMonths, coffeesByDay, coffeeStatus } from "@/lib/coffee";
+import { coffeeHistory, coffeeMonths, coffeesByDay, coffeeStatus, formatMinutes, sipWindow } from "@/lib/coffee";
 import { addDays, buildDays, chartBars, firstBottleTable, monthCells, periodStats, streaks, type Period } from "@/lib/history";
 import { dayKey } from "@/lib/log";
 import { toUnit, unitLabel } from "@/lib/settings";
@@ -237,7 +237,10 @@ export default function History() {
                         <li key={c.id} style={{ fontSize: 15, minHeight: 48, borderBottom: i === arr.length - 1 && showAll ? 0 : undefined }}>
                           <span>
                             {DATE_FMT.format(at)}
-                            <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>{c.fromNotes ? "from notes" : TIME_FMT.format(at)}</span>
+                            <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
+                              {c.fromNotes ? "from notes" : TIME_FMT.format(at)}
+                              {(() => { const w = sipWindow(c, now); return w ? ` · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : c.fromNotes ? "" : " · open"; })()}
+                            </span>
                           </span>
                           <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label={`Remove coffee on ${c.at.slice(0, 10)}`} onClick={() => removeCoffee(c.id)}>{"\u2715"}</button>
                         </li>

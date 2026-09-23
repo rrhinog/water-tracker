@@ -8,6 +8,37 @@ export interface CoffeeEntry {
   at: string;
   /** Day-level row imported from the daily notes (time unknown, set to noon). */
   fromNotes?: boolean;
+  /** ISO timestamp of when it was finished; absent while the coffee is still open. */
+  finishedAt?: string;
+}
+
+/** An open coffee older than this is assumed finished at the cutoff (a forgotten tap, not a 14-hour latte). */
+export const OPEN_COFFEE_MAX_MS = 12 * 60 * 60 * 1000;
+
+export type SipWindow = { minutes: number; assumed: boolean } | null;
+
+/** Brew-to-finished window. Null while open (and within the cutoff) or for imported note days. */
+export function sipWindow(c: CoffeeEntry, now: Date): SipWindow {
+  if (c.fromNotes) return null;
+  const start = new Date(c.at).getTime();
+  if (c.finishedAt) return { minutes: Math.max(0, Math.round((new Date(c.finishedAt).getTime() - start) / 60000)), assumed: false };
+  if (now.getTime() - start >= OPEN_COFFEE_MAX_MS) return { minutes: OPEN_COFFEE_MAX_MS / 60000, assumed: true };
+  return null;
+}
+
+/** Still open: no finish recorded and within the cutoff. */
+export function isOpen(c: CoffeeEntry, now: Date): boolean {
+  return !c.fromNotes && !c.finishedAt && now.getTime() - new Date(c.at).getTime() < OPEN_COFFEE_MAX_MS;
+}
+
+export function finishCoffee(c: CoffeeEntry, now: Date): CoffeeEntry {
+  return { ...c, finishedAt: now.toISOString() };
+}
+
+/** "2h 55m" / "48m" */
+export function formatMinutes(min: number): string {
+  const h = Math.floor(min / 60), m = min % 60;
+  return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
 }
 
 export function makeCoffee(now: Date): CoffeeEntry {

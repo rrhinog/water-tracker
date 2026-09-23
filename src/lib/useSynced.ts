@@ -113,6 +113,12 @@ export function useSynced() {
       saveCoffee(next);
       void track(sendOrQueue({ kind: "upsert-coffee", entry }));
     },
+    updateCoffee(entry: CoffeeEntry) {
+      const next = coffees.map((c) => (c.id === entry.id ? entry : c));
+      setCoffees(next);
+      saveCoffee(next);
+      void track(sendOrQueue({ kind: "upsert-coffee", entry }));
+    },
     removeCoffee(id: string) {
       const next = coffees.filter((c) => c.id !== id);
       setCoffees(next);

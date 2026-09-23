@@ -115,4 +115,14 @@ describe("Tracker", () => {
     fireEvent.click(save);
     expect(JSON.parse(window.localStorage.getItem("water.settings.v1")!).accent).toBe("#0f6e8c");
   });
+
+  it("a logged coffee is open with a Finished button; finishing records the window", () => {
+    render(<Tracker />);
+    fireEvent.click(screen.getByRole("button", { name: "Coffee" }));
+    expect(screen.getAllByText(/open ·/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Finished" })[0]);
+    expect(screen.getAllByText(/finished · 0m/).length).toBeGreaterThan(0);
+    const stored = JSON.parse(window.localStorage.getItem("water.coffee.v1")!);
+    expect(stored[0].finishedAt).toBeDefined();
+  });
 });

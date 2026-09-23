@@ -6,7 +6,7 @@ export interface CoffeeEntry {
   id: string;
   /** ISO timestamp of when the coffee was logged. */
   at: string;
-  /** Day-level row imported from the daily notes (time unknown, set to noon). */
+  /** Imported from the daily notes rather than logged in the app. Never "open": without a finish time it simply has no window. */
   fromNotes?: boolean;
   /** ISO timestamp of when it was finished; absent while the coffee is still open. */
   finishedAt?: string;
@@ -19,11 +19,11 @@ export const OPEN_COFFEE_MAX_MS = 12 * 60 * 60 * 1000;
 
 export type SipWindow = { minutes: number; assumed: boolean } | null;
 
-/** Brew-to-finished window. Null while open (and within the cutoff) or for imported note days. */
+/** Brew-to-finished window. Null while open (and within the cutoff), or for an imported coffee whose finish the notes never recorded. */
 export function sipWindow(c: CoffeeEntry, now: Date): SipWindow {
-  if (c.fromNotes) return null;
   const start = new Date(c.at).getTime();
   if (c.finishedAt) return { minutes: Math.max(0, Math.round((new Date(c.finishedAt).getTime() - start) / 60000)), assumed: false };
+  if (c.fromNotes) return null;
   if (now.getTime() - start >= OPEN_COFFEE_MAX_MS) return { minutes: OPEN_COFFEE_MAX_MS / 60000, assumed: true };
   return null;
 }

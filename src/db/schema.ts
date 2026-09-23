@@ -22,6 +22,8 @@ export const coffeeEntries = pgTable("coffee_entries", {
   fromNotes: boolean("from_notes").notNull().default(false),
   /** When the coffee was finished; NULL while it is still open. */
   finishedAt: timestamp("finished_at", { withTimezone: true }),
+  /** Which pod (or "Bought out"), copied from Settings at log time. */
+  flavour: text("flavour"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

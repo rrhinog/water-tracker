@@ -10,6 +10,8 @@ export interface CoffeeEntry {
   fromNotes?: boolean;
   /** ISO timestamp of when it was finished; absent while the coffee is still open. */
   finishedAt?: string;
+  /** Which pod (or "Bought out"), as named in Settings when logged. Kept even if the flavour is later removed. */
+  flavour?: string;
 }
 
 /** An open coffee older than this is assumed finished at the cutoff (a forgotten tap, not a 14-hour latte). */
@@ -41,8 +43,29 @@ export function formatMinutes(min: number): string {
   return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
 }
 
-export function makeCoffee(now: Date): CoffeeEntry {
-  return { id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`, at: now.toISOString() };
+export function makeCoffee(now: Date, flavour?: string): CoffeeEntry {
+  const c: CoffeeEntry = { id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`, at: now.toISOString() };
+  if (flavour) c.flavour = flavour;
+  return c;
+}
+
+/** Coffees per flavour, most first; imported note days have no flavour and are reported as "unknown". */
+export function coffeesByFlavour(entries: readonly CoffeeEntry[]): { flavour: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const e of entries) {
+    const k = e.flavour ?? (e.fromNotes ? "unknown (from notes)" : "unspecified");
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return [...m].map(([flavour, count]) => ({ flavour, count })).sort((a, b) => b.count - a.count);
+}
+
+/** The flavour of the most recent app-logged coffee, or null. */
+export function lastFlavour(entries: readonly CoffeeEntry[]): string | null {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (!e.fromNotes && e.flavour) return e.flavour;
+  }
+  return null;
 }
 
 /** Every day with a coffee (imported note days and app logs alike). */

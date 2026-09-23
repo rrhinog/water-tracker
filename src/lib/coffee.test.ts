@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coffeeHistory, coffeeMonths, coffeeStatus, finishCoffee, formatMinutes, isOpen, makeCoffee, sipWindow } from "./coffee";
+import { coffeeHistory, coffeeMonths, coffeeStatus, coffeesByFlavour, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "./coffee";
 
 const seed = ["2026-09-15", "2026-09-16", "2026-09-17"].map((d) => ({ id: `seed-coffee-${d}`, at: `${d}T12:00:00`, fromNotes: true }));
 const at = (d: number, h = 9) => new Date(2026, 8, d, h);
@@ -70,5 +70,26 @@ describe("brew timer", () => {
 
   it("imported note days have no window", () => {
     expect(sipWindow({ id: "n", at: "2026-09-01T12:00:00", fromNotes: true }, new Date(2026, 8, 22))).toBeNull();
+  });
+});
+
+describe("flavours", () => {
+  it("counts by flavour and remembers the last one", () => {
+    const t = (h: number) => new Date(2026, 8, 22, h);
+    const entries = [
+      { id: "n1", at: "2026-09-01T12:00:00", fromNotes: true },
+      makeCoffee(t(7), "BRCC Spirit of '76"),
+      makeCoffee(t(9), "Starbucks Vanilla"),
+      makeCoffee(t(11), "BRCC Spirit of '76"),
+      makeCoffee(t(13)),
+    ];
+    expect(coffeesByFlavour(entries)).toEqual([
+      { flavour: "BRCC Spirit of '76", count: 2 },
+      { flavour: "unknown (from notes)", count: 1 },
+      { flavour: "Starbucks Vanilla", count: 1 },
+      { flavour: "unspecified", count: 1 },
+    ]);
+    expect(lastFlavour(entries)).toBe("BRCC Spirit of '76");
+    expect(lastFlavour([])).toBeNull();
   });
 });

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
-import { coffeeStatus, finishCoffee, formatMinutes, isOpen, makeCoffee, sipWindow } from "@/lib/coffee";
+import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
 import { clearedDayProfiles } from "@/lib/history";
 import { dayKey, entriesForDay, makeCustomEntry, makeEntry, recentCustomAmounts, totalOz } from "@/lib/log";
 import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
@@ -75,17 +75,27 @@ export default function Tracker() {
   const coffee = coffeeStatus(coffees, now);
   const todayCoffees = coffees.filter((c) => !c.fromNotes && dayKey(new Date(c.at)) === dayKey(now));
   const openCoffee = coffees.find((c) => isOpen(c, now)) ?? null;
+  const flavours = settings.flavours;
+  const defaultFlavour = lastFlavour(coffees) ?? flavours[0];
+  const logCoffee = () => addCoffee(makeCoffee(new Date(), defaultFlavour));
   const elapsedOf = (c: { at: string }) => formatMinutes(Math.round((now.getTime() - new Date(c.at).getTime()) / 60000));
   const coffeeRow = (c: (typeof coffees)[number], last = false) => {
     const open = isOpen(c, now);
     const w = sipWindow(c, now);
     return (
       <li key={c.id} style={{ fontSize: 15, minHeight: 48, borderBottom: last ? 0 : undefined }}>
-        <span>
-          Coffee <span className="ink-list__meta">{TIME_FMT.format(new Date(c.at))}</span>
+        <span style={{ minWidth: 0 }}>
+          {c.flavour ?? "Coffee"} <span className="ink-list__meta">{TIME_FMT.format(new Date(c.at))}</span>
           <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
             {open ? `open · ${elapsedOf(c)}` : w ? `finished · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : ""}
           </span>
+          {open && flavours.length > 1 && (
+            <span className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Flavour">
+              {flavours.map((f) => (
+                <button key={f} type="button" className="ink-chip" style={{ minHeight: 32, height: 32, padding: "0 10px", fontSize: 12 }} aria-pressed={c.flavour === f} onClick={() => updateCoffee({ ...c, flavour: f })}>{f}</button>
+              ))}
+            </span>
+          )}
         </span>
         <span className="flex items-center gap-2">
           {open && (
@@ -116,7 +126,7 @@ export default function Tracker() {
           Finished ({elapsedOf(openCoffee)})
         </button>
       ) : (
-        <button type="button" className="ink-btn ink-btn--sm" style={{ width: "100%" }} onClick={() => addCoffee(makeCoffee(new Date()))}>
+        <button type="button" className="ink-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
           Log a coffee
         </button>
       )}
@@ -236,7 +246,7 @@ export default function Tracker() {
                 {openCoffee ? (
                   <button type="button" className="ink-btn ink-btn--inverse" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
                 ) : (
-                  <button type="button" className="ink-btn ink-btn--inverse" onClick={() => addCoffee(makeCoffee(new Date()))}>Coffee</button>
+                  <button type="button" className="ink-btn ink-btn--inverse" onClick={logCoffee}>Coffee</button>
                 )}
               </div>
               <div className="ink-card__body flex items-baseline justify-between" style={{ padding: "14px 24px" }}>

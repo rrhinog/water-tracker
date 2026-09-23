@@ -20,6 +20,10 @@ export const coffeeEntries = pgTable("coffee_entries", {
   at: timestamp("at", { withTimezone: true }).notNull(),
   /** True for a day-level row imported from the daily notes (time unknown, set to noon). */
   fromNotes: boolean("from_notes").notNull().default(false),
+  /** When the coffee was finished; NULL while it is still open. */
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
+  /** Which pod (or "Bought out"), copied from Settings at log time. */
+  flavour: text("flavour"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

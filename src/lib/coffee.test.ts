@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coffeeHistory, coffeeMonths, coffeeStatus, makeCoffee } from "./coffee";
+import { coffeeHistory, coffeeMonths, coffeeStatus, coffeesByFlavour, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "./coffee";
 
 const seed = ["2026-09-15", "2026-09-16", "2026-09-17"].map((d) => ({ id: `seed-coffee-${d}`, at: `${d}T12:00:00`, fromNotes: true }));
 const at = (d: number, h = 9) => new Date(2026, 8, d, h);
@@ -45,5 +45,51 @@ describe("coffee history", () => {
       { month: "2026-08", coffees: 1, coffeeDays: 1, freeDays: 1 },
       { month: "2026-09", coffees: 2, coffeeDays: 1, freeDays: 4 },
     ]);
+  });
+});
+
+describe("brew timer", () => {
+  const start = new Date(2026, 8, 22, 7, 5);
+  it("is open until finished, then reports the sip window", () => {
+    const c = makeCoffee(start);
+    expect(isOpen(c, new Date(2026, 8, 22, 9, 0))).toBe(true);
+    expect(sipWindow(c, new Date(2026, 8, 22, 9, 0))).toBeNull();
+    const done = finishCoffee(c, new Date(2026, 8, 22, 10, 0));
+    expect(isOpen(done, new Date(2026, 8, 22, 11, 0))).toBe(false);
+    expect(sipWindow(done, new Date(2026, 8, 22, 11, 0))).toEqual({ minutes: 175, assumed: false });
+    expect(formatMinutes(175)).toBe("2h 55m");
+    expect(formatMinutes(48)).toBe("48m");
+  });
+
+  it("assumes a forgotten coffee finished after 12 hours", () => {
+    const c = makeCoffee(start);
+    const later = new Date(2026, 8, 22, 21, 0);
+    expect(isOpen(c, later)).toBe(false);
+    expect(sipWindow(c, later)).toEqual({ minutes: 720, assumed: true });
+  });
+
+  it("imported note days have no window", () => {
+    expect(sipWindow({ id: "n", at: "2026-09-01T12:00:00", fromNotes: true }, new Date(2026, 8, 22))).toBeNull();
+  });
+});
+
+describe("flavours", () => {
+  it("counts by flavour and remembers the last one", () => {
+    const t = (h: number) => new Date(2026, 8, 22, h);
+    const entries = [
+      { id: "n1", at: "2026-09-01T12:00:00", fromNotes: true },
+      makeCoffee(t(7), "BRCC Spirit of '76"),
+      makeCoffee(t(9), "Starbucks Vanilla"),
+      makeCoffee(t(11), "BRCC Spirit of '76"),
+      makeCoffee(t(13)),
+    ];
+    expect(coffeesByFlavour(entries)).toEqual([
+      { flavour: "BRCC Spirit of '76", count: 2 },
+      { flavour: "unknown (from notes)", count: 1 },
+      { flavour: "Starbucks Vanilla", count: 1 },
+      { flavour: "unspecified", count: 1 },
+    ]);
+    expect(lastFlavour(entries)).toBe("BRCC Spirit of '76");
+    expect(lastFlavour([])).toBeNull();
   });
 });

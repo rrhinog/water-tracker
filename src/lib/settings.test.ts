@@ -33,6 +33,11 @@ describe("normalizeSettings", () => {
     expect(s.defaultPaceMode).toBe("even");
   });
 
+  it("cleans the flavour list and keeps the defaults when absent", () => {
+    expect(normalizeSettings({ flavours: [" Vanilla ", "", "Vanilla", 3, "Bought out"] }).flavours).toEqual(["Vanilla", "Bought out"]);
+    expect(normalizeSettings({}).flavours).toEqual(DEFAULT_SETTINGS.flavours);
+  });
+
   it("keeps a readable accent and falls back on an unreadable one", () => {
     expect(normalizeSettings({ accent: "#0F6E8C" }).accent).toBe("#0f6e8c");
     expect(normalizeSettings({ accent: "#7dd3fc" }).accent).toBe("#111111");

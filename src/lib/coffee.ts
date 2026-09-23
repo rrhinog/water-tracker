@@ -8,10 +8,64 @@ export interface CoffeeEntry {
   at: string;
   /** Day-level row imported from the daily notes (time unknown, set to noon). */
   fromNotes?: boolean;
+  /** ISO timestamp of when it was finished; absent while the coffee is still open. */
+  finishedAt?: string;
+  /** Which pod (or "Bought out"), as named in Settings when logged. Kept even if the flavour is later removed. */
+  flavour?: string;
 }
 
-export function makeCoffee(now: Date): CoffeeEntry {
-  return { id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`, at: now.toISOString() };
+/** An open coffee older than this is assumed finished at the cutoff (a forgotten tap, not a 14-hour latte). */
+export const OPEN_COFFEE_MAX_MS = 12 * 60 * 60 * 1000;
+
+export type SipWindow = { minutes: number; assumed: boolean } | null;
+
+/** Brew-to-finished window. Null while open (and within the cutoff) or for imported note days. */
+export function sipWindow(c: CoffeeEntry, now: Date): SipWindow {
+  if (c.fromNotes) return null;
+  const start = new Date(c.at).getTime();
+  if (c.finishedAt) return { minutes: Math.max(0, Math.round((new Date(c.finishedAt).getTime() - start) / 60000)), assumed: false };
+  if (now.getTime() - start >= OPEN_COFFEE_MAX_MS) return { minutes: OPEN_COFFEE_MAX_MS / 60000, assumed: true };
+  return null;
+}
+
+/** Still open: no finish recorded and within the cutoff. */
+export function isOpen(c: CoffeeEntry, now: Date): boolean {
+  return !c.fromNotes && !c.finishedAt && now.getTime() - new Date(c.at).getTime() < OPEN_COFFEE_MAX_MS;
+}
+
+export function finishCoffee(c: CoffeeEntry, now: Date): CoffeeEntry {
+  return { ...c, finishedAt: now.toISOString() };
+}
+
+/** "2h 55m" / "48m" */
+export function formatMinutes(min: number): string {
+  const h = Math.floor(min / 60), m = min % 60;
+  return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
+}
+
+export function makeCoffee(now: Date, flavour?: string): CoffeeEntry {
+  const c: CoffeeEntry = { id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`, at: now.toISOString() };
+  if (flavour) c.flavour = flavour;
+  return c;
+}
+
+/** Coffees per flavour, most first; imported note days have no flavour and are reported as "unknown". */
+export function coffeesByFlavour(entries: readonly CoffeeEntry[]): { flavour: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const e of entries) {
+    const k = e.flavour ?? (e.fromNotes ? "unknown (from notes)" : "unspecified");
+    m.set(k, (m.get(k) ?? 0) + 1);
+  }
+  return [...m].map(([flavour, count]) => ({ flavour, count })).sort((a, b) => b.count - a.count);
+}
+
+/** The flavour of the most recent app-logged coffee, or null. */
+export function lastFlavour(entries: readonly CoffeeEntry[]): string | null {
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    if (!e.fromNotes && e.flavour) return e.flavour;
+  }
+  return null;
 }
 
 /** Every day with a coffee (imported note days and app logs alike). */

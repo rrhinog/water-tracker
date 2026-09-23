@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
-import { coffeeStatus, makeCoffee } from "@/lib/coffee";
+import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
 import { clearedDayProfiles } from "@/lib/history";
 import { dayKey, entriesForDay, makeCustomEntry, makeEntry, recentCustomAmounts, totalOz } from "@/lib/log";
 import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
@@ -16,7 +16,14 @@ const TIME_FMT = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit
 
 export default function Tracker() {
   // Loaded with ssr: false (see page.tsx), so localStorage is readable in lazy initializers.
-  const { entries, coffees, settings, sync, pending, addEntry, removeEntry, addCoffee, removeCoffee } = useSynced();
+  const { entries, coffees, settings, sync, pending, addEntry, removeEntry, addCoffee, updateCoffee, removeCoffee } = useSynced();
+  // A ticking clock so an open coffee's elapsed time updates once a minute.
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  void tick;
   const { bottles, floorOz, unit } = settings;
   const window = { startH: settings.paceStartH, endH: settings.paceEndH };
   const u = unitLabel(unit);
@@ -67,6 +74,38 @@ export default function Tracker() {
   const pace = paceStatus(paceMode, total, now, firstAt, floorOz, window, ownCurve);
   const coffee = coffeeStatus(coffees, now);
   const todayCoffees = coffees.filter((c) => !c.fromNotes && dayKey(new Date(c.at)) === dayKey(now));
+  const openCoffee = coffees.find((c) => isOpen(c, now)) ?? null;
+  const flavours = settings.flavours;
+  const defaultFlavour = lastFlavour(coffees) ?? flavours[0];
+  const logCoffee = () => addCoffee(makeCoffee(new Date(), defaultFlavour));
+  const elapsedOf = (c: { at: string }) => formatMinutes(Math.round((now.getTime() - new Date(c.at).getTime()) / 60000));
+  const coffeeRow = (c: (typeof coffees)[number], last = false) => {
+    const open = isOpen(c, now);
+    const w = sipWindow(c, now);
+    return (
+      <li key={c.id} style={{ fontSize: 15, minHeight: 48, borderBottom: last ? 0 : undefined }}>
+        <span style={{ minWidth: 0 }}>
+          {c.flavour ?? "Coffee"} <span className="ink-list__meta">{TIME_FMT.format(new Date(c.at))}</span>
+          <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
+            {open ? `open · ${elapsedOf(c)}` : w ? `finished · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : ""}
+          </span>
+          {open && flavours.length > 1 && (
+            <span className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Flavour">
+              {flavours.map((f) => (
+                <button key={f} type="button" className="ink-chip" style={{ minHeight: 32, height: 32, padding: "0 10px", fontSize: 12 }} aria-pressed={c.flavour === f} onClick={() => updateCoffee({ ...c, flavour: f })}>{f}</button>
+              ))}
+            </span>
+          )}
+        </span>
+        <span className="flex items-center gap-2">
+          {open && (
+            <button type="button" className="ink-btn ink-btn--sm" onClick={() => updateCoffee(finishCoffee(c, new Date()))}>Finished</button>
+          )}
+          <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label="Remove coffee" onClick={() => removeCoffee(c.id)}>{"✕"}</button>
+        </span>
+      </li>
+    );
+  };
 
   // Direction in words, never colour (kit rule).
   const paceWord = cleared ? "Done for the day" : pace.delta >= 0 ? `▲ ${fmt(pace.delta, unit)} ahead` : `▼ ${fmt(Math.abs(pace.delta), unit)} behind`;
@@ -82,9 +121,15 @@ export default function Tracker() {
       <p className="ink-list__meta" style={{ margin: "6px 0 12px" }}>
         {coffee.todayCount === 0 ? "today: clean so far" : `${coffee.todayCount} today · resets tomorrow`}
       </p>
-      <button type="button" className="ink-btn ink-btn--sm" style={{ width: "100%" }} onClick={() => addCoffee(makeCoffee(new Date()))}>
-        Log a coffee
-      </button>
+      {openCoffee ? (
+        <button type="button" className="ink-btn ink-btn--primary ink-btn--sm" style={{ width: "100%" }} onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>
+          Finished ({elapsedOf(openCoffee)})
+        </button>
+      ) : (
+        <button type="button" className="ink-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
+          Log a coffee
+        </button>
+      )}
     </>
   );
 
@@ -198,7 +243,11 @@ export default function Tracker() {
             <section className="ink-card lg:hidden">
               <div className="ink-card__head">
                 <span>Coffee-free streak</span>
-                <button type="button" className="ink-btn ink-btn--inverse" onClick={() => addCoffee(makeCoffee(new Date()))}>Coffee</button>
+                {openCoffee ? (
+                  <button type="button" className="ink-btn ink-btn--inverse" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
+                ) : (
+                  <button type="button" className="ink-btn ink-btn--inverse" onClick={logCoffee}>Coffee</button>
+                )}
               </div>
               <div className="ink-card__body flex items-baseline justify-between" style={{ padding: "14px 24px" }}>
                 <span style={{ font: "600 26px/1 var(--font-mono)" }}>
@@ -208,12 +257,7 @@ export default function Tracker() {
               </div>
               {todayCoffees.length > 0 && (
                 <ul className="ink-list" style={{ borderTop: "2px solid var(--ink-900)" }}>
-                  {[...todayCoffees].reverse().map((c) => (
-                    <li key={c.id} style={{ fontSize: 15, minHeight: 44 }}>
-                      <span>Coffee <span className="ink-list__meta">{TIME_FMT.format(new Date(c.at))}</span></span>
-                      <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label="Remove coffee" onClick={() => removeCoffee(c.id)}>{"✕"}</button>
-                    </li>
-                  ))}
+                  {[...todayCoffees].reverse().map((c) => coffeeRow(c))}
                 </ul>
               )}
             </section>
@@ -247,12 +291,7 @@ export default function Tracker() {
               <section className="ink-card hidden lg:block">
                 <div className="ink-card__head"><span>Coffee today</span><span className="ink-badge">{todayCoffees.length}</span></div>
                 <ul className="ink-list" style={{ borderTop: 0 }}>
-                  {[...todayCoffees].reverse().map((c, i, arr) => (
-                    <li key={c.id} style={{ fontSize: 15, minHeight: 44, borderBottom: i === arr.length - 1 ? 0 : undefined }}>
-                      <span>Coffee <span className="ink-list__meta">{TIME_FMT.format(new Date(c.at))}</span></span>
-                      <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label="Remove coffee" onClick={() => removeCoffee(c.id)}>{"✕"}</button>
-                    </li>
-                  ))}
+                  {[...todayCoffees].reverse().map((c, i, arr) => coffeeRow(c, i === arr.length - 1))}
                 </ul>
               </section>
             )}

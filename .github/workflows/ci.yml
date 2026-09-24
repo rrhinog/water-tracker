@@ -30,7 +30,8 @@ jobs:
       - name: Lint
         run: bun run lint
       - name: Typecheck
-        run: bunx tsc --noEmit
+        # Route types (LayoutProps, PageProps) are generated, not committed; a fresh checkout needs them first.
+        run: bunx next typegen && bunx tsc --noEmit
       - name: Test
         run: bun run test
       - name: Build

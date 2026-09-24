@@ -95,6 +95,7 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
 @media (pointer: coarse) {
   .ink-chip, .ink-btn, .ink-btn--sm, .ink-btn--inverse { min-height: 44px; }
   .ink-btn--icon { min-width: 44px; min-height: 44px; }
+  .ink-input, input[type="text"], input[type="number"], input[inputmode] { min-height: 44px; }
 }
 
 /* The slider's hit area is the thumb height, not the 2px track. */

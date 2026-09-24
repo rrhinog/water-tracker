@@ -40,6 +40,7 @@ describe("normalizeSettings", () => {
 
   it("keeps a readable accent and falls back on an unreadable one", () => {
     expect(normalizeSettings({ accent: "#0F6E8C" }).accent).toBe("#0f6e8c");
+    expect(normalizeSettings({ accent: "squirtle" }).accent).toBe("squirtle");
     expect(normalizeSettings({ accent: "#7dd3fc" }).accent).toBe("#111111");
     expect(normalizeSettings({ accent: "red" }).accent).toBe("#111111");
   });

@@ -104,7 +104,7 @@ export default function Tracker() {
         </span>
         <span className="flex items-center gap-2">
           {open && (
-            <button type="button" className="ink-btn ink-btn--sm" onClick={() => updateCoffee(finishCoffee(c, new Date()))}>Finished</button>
+            <button type="button" className="ink-btn coffee-btn ink-btn--sm" onClick={() => updateCoffee(finishCoffee(c, new Date()))}>Finished</button>
           )}
           <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label="Remove coffee" onClick={() => removeCoffee(c.id)}>{"✕"}</button>
         </span>
@@ -127,11 +127,11 @@ export default function Tracker() {
         {coffee.todayCount === 0 ? "today: clean so far" : `${coffee.todayCount} today · resets tomorrow`}
       </p>
       {openCoffee ? (
-        <button type="button" className="ink-btn ink-btn--primary ink-btn--sm" style={{ width: "100%" }} onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>
+        <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>
           Finished ({elapsedOf(openCoffee)})
         </button>
       ) : (
-        <button type="button" className="ink-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
+        <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
           Log a coffee
         </button>
       )}
@@ -255,9 +255,9 @@ export default function Tracker() {
               <div className="ink-card__head">
                 <span>Coffee-free streak</span>
                 {openCoffee ? (
-                  <button type="button" className="ink-btn ink-btn--inverse" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
+                  <button type="button" className="ink-btn coffee-btn" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
                 ) : (
-                  <button type="button" className="ink-btn ink-btn--inverse" onClick={logCoffee}>+ Coffee</button>
+                  <button type="button" className="ink-btn coffee-btn" onClick={logCoffee}>+ Coffee</button>
                 )}
               </div>
               <div className="ink-card__body flex items-baseline justify-between" style={{ padding: "14px 24px" }}>

@@ -225,12 +225,12 @@ export default function History() {
                     {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i} className="cal-cell" style={{ border: 0, color: "var(--ink-500)" }}>{d}</span>)}
                     {Array.from({ length: cFirstDow }, (_, i) => <span key={`pad${i}`} />)}
                     {cCells.map((c) => (
-                      <span key={c.day} className={`cal-cell ${c.n > 0 ? "miss" : ""} ${c.day === today ? "today" : ""}`} style={c.n > 0 ? { background: "var(--ink-black)", color: "var(--ink-white)" } : c.future ? { opacity: 0.4 } : undefined} title={c.n > 0 ? `${c.day}: ${c.n} ${c.n === 1 ? "coffee" : "coffees"}` : `${c.day}: coffee-free`}>
+                      <span key={c.day} className={`cal-cell ${c.n > 0 ? "coffee" : ""} ${c.day === today ? "today" : ""}`} style={c.n === 0 && c.future ? { opacity: 0.4 } : undefined} title={c.n > 0 ? `${c.day}: ${c.n} ${c.n === 1 ? "coffee" : "coffees"}` : `${c.day}: coffee-free`}>
                         {Number(c.day.slice(-2))}
                       </span>
                     ))}
                   </div>
-                  <p style={{ margin: "10px 0 0", font: "400 12px/1.4 var(--font-sans)", color: "var(--ink-700)" }}>Ink = a coffee day. Blank = coffee-free.</p>
+                  <p style={{ margin: "10px 0 0", font: "400 12px/1.4 var(--font-sans)", color: "var(--ink-700)" }}>Filled = a coffee day. Blank = coffee-free.</p>
                 </div>
               </div>
 

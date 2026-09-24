@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { ACCENT_SWATCHES, accentReadable, contrast } from "./color";
+import { ACCENT_SWATCHES, THEMES, accentReadable, contrast } from "./color";
 
 describe("accent contrast", () => {
   it("computes WCAG contrast", () => {
     expect(contrast("#000000", "#ffffff")).toBe(21);
     expect(contrast("#ffffff", "#ffffff")).toBe(1);
+  });
+
+  it("named themes are accepted, and each shade passes 4.5:1 in its role", () => {
+    expect(accentReadable("squirtle")).toBe(true);
+    expect(accentReadable("bulbasaur")).toBe(false);
+    expect(contrast(THEMES.squirtle.light, "#ffffff")).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(THEMES.squirtle.dark, "#141414")).toBeGreaterThanOrEqual(4.5);
   });
 
   it("every curated swatch passes 4.5:1 under white text", () => {

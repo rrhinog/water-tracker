@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 import Settings from "@/components/Settings";
 import Tracker from "@/components/Tracker";
+import { DEFAULT_DISPLAY } from "@/lib/display";
 
 describe("Tracker", () => {
   // No server in unit tests: every fetch rejects, so the hook stays on the local cache.
@@ -100,7 +101,7 @@ describe("Tracker", () => {
   it("display size applies on tap, stays on this device, and never touches the Save bar", () => {
     render(<Settings />);
     const group = screen.getByRole("group", { name: "Display size" });
-    expect(within(group).getByRole("button", { name: "100%" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(group).getByRole("button", { name: `${DEFAULT_DISPLAY}%` }).getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(within(group).getByRole("button", { name: "80%" }));
     expect(within(group).getByRole("button", { name: "80%" }).getAttribute("aria-pressed")).toBe("true");
     expect(document.documentElement.style.getPropertyValue("--display-scale")).toBe("0.8");

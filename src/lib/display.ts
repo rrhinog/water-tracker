@@ -7,8 +7,11 @@
 export const DISPLAY_STEPS = [80, 90, 100, 110, 125] as const;
 export type DisplayStep = (typeof DISPLAY_STEPS)[number];
 
-/** Size used until this device picks one. The one place to change the default. */
-export const DEFAULT_DISPLAY: DisplayStep = 100;
+/**
+ * Size used until this device picks one. The one place to change the default.
+ * 90 since v1.7.1: the Ink Kit sizes (fixed px, 34 px titles, 56 px totals) read large on a phone at 100.
+ */
+export const DEFAULT_DISPLAY: DisplayStep = 90;
 
 export const DISPLAY_KEY = "water.display.v1";
 

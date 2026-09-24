@@ -20,7 +20,7 @@ function monthLabel(month: string): string {
 }
 
 export default function History() {
-  const { entries, coffees, settings, sync, removeCoffee } = useSynced();
+  const { entries, coffees, settings, offline, removeCoffee } = useSynced();
   const floor = settings.floorOz;
   const unit = settings.unit;
   const u = unitLabel(unit);
@@ -68,7 +68,7 @@ export default function History() {
   const trackedInMonth = cells.filter((c) => c.state !== "none").length;
 
   return (
-    <Shell syncNote={sync === "offline" ? <span className="ink-tag">not synced</span> : null}>
+    <Shell offline={offline}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 lg:max-w-5xl lg:gap-6 lg:p-10">
         <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div className="flex flex-col gap-1">

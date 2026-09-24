@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { dayKey, entriesForDay, makeCustomEntry, makeEntry, ouncesFor, recentCustomAmounts, totalOz } from "./log";
+import { byTime, dayKey, entriesForDay, lastDrink, makeCustomEntry, makeEntry, ouncesFor, recentCustomAmounts, refillOf, totalOz } from "./log";
+import { makeStartEntry } from "./duration";
 import { DEFAULT_SETTINGS } from "./settings";
 
 const [owala, yeti, camelbak] = DEFAULT_SETTINGS.bottles;
@@ -54,5 +55,43 @@ describe("one-off amounts", () => {
     ];
     expect(recentCustomAmounts(entries)).toEqual([12, 30, 16.9]);
     expect(recentCustomAmounts(entries, 2)).toEqual([12, 30]);
+  });
+});
+
+describe("refill", () => {
+  const t = (h: number, m = 0) => new Date(2026, 8, 24, h, m);
+
+  it("repeats the last drink: new id, now, same bottle, fraction and ounces", () => {
+    const last = makeEntry(yeti, 0.5, t(9));
+    const again = refillOf(last, t(11, 20));
+    expect(again.id).not.toBe(last.id);
+    expect(again.at).toBe(t(11, 20).toISOString());
+    expect({ bottleId: again.bottleId, fraction: again.fraction, oz: again.oz }).toEqual({ bottleId: "yeti", fraction: 0.5, oz: 18 });
+    expect(again.untimed).toBeUndefined();
+  });
+
+  it("works for a one-off Other amount too", () => {
+    const again = refillOf(makeCustomEntry(16.9, t(9)), t(10));
+    expect({ bottleId: again.bottleId, fraction: again.fraction, oz: again.oz }).toEqual({ bottleId: "other", fraction: 1, oz: 16.9 });
+  });
+
+  it("the last drink is the latest by time, skipping start markers and untimed backfill", () => {
+    const a = makeEntry(yeti, 1, t(9));
+    const b = makeCustomEntry(12, t(12)); // logged earlier in the list order, but later in the day
+    const start = makeStartEntry(t(13));
+    const untimed = { ...makeEntry(camelbak, 1, t(23, 59)), untimed: true };
+    expect(lastDrink([b, a, start, untimed])).toBe(b);
+    expect(lastDrink([start])).toBeNull();
+    expect(lastDrink([])).toBeNull();
+  });
+});
+
+describe("byTime", () => {
+  it("sorts oldest first without touching the input (a re-timed or yesterday row lands in place)", () => {
+    const late = makeEntry(yeti, 1, new Date(2026, 8, 24, 15, 0));
+    const early = makeEntry(yeti, 1, new Date(2026, 8, 23, 21, 0));
+    const input = [late, early];
+    expect(byTime(input)).toEqual([early, late]);
+    expect(input[0]).toBe(late);
   });
 });

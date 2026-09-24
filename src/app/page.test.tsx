@@ -68,7 +68,7 @@ describe("Tracker", () => {
   it("logs a coffee without touching the water total, and removes it", () => {
     render(<Tracker />);
     fireEvent.click(screen.getByRole("button", { name: /Log 40 oz/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Coffee" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Coffee" }));
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("40");
     expect(screen.getAllByText(/1 today/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Remove coffee" })[0]);
@@ -118,17 +118,17 @@ describe("Tracker", () => {
 
   it("a logged coffee is open with a Finished button; finishing records the window", () => {
     render(<Tracker />);
-    fireEvent.click(screen.getByRole("button", { name: "Coffee" }));
-    expect(screen.getAllByText(/open ·/).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "+ Coffee" }));
+    expect(screen.getAllByText(/open \d/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Finished" })[0]);
-    expect(screen.getAllByText(/finished · 0m/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/finished 0m/).length).toBeGreaterThan(0);
     const stored = JSON.parse(window.localStorage.getItem("water.coffee.v1")!);
     expect(stored[0].finishedAt).toBeDefined();
   });
 
   it("logs with the first flavour by default and lets the open coffee change it", () => {
     render(<Tracker />);
-    fireEvent.click(screen.getByRole("button", { name: "Coffee" }));
+    fireEvent.click(screen.getByRole("button", { name: "+ Coffee" }));
     expect(screen.getAllByText(/BRCC Spirit of '76/).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Starbucks Vanilla" })[0]);
     const stored = JSON.parse(window.localStorage.getItem("water.coffee.v1")!);

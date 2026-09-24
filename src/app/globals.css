@@ -81,7 +81,7 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
 .cal-cell.today { outline: 2px solid var(--ink-black); outline-offset: 2px; }
 
 /* Accent swatch buttons in Settings. */
-.swatch { width: 40px; height: 40px; border-radius: 999px; border: 2px solid var(--ink-black); cursor: pointer; padding: 0; }
+.swatch { width: 44px; height: 44px; border-radius: 999px; border: 2px solid var(--ink-black); cursor: pointer; padding: 0; }
 .swatch[aria-pressed="true"] { outline: 2px solid var(--ink-black); outline-offset: 3px; }
 
 /* E-ink foot: keep pace words on one line on a phone. */
@@ -95,6 +95,7 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
 @media (pointer: coarse) {
   .ink-chip, .ink-btn, .ink-btn--sm, .ink-btn--inverse { min-height: 44px; }
   .ink-btn--icon { min-width: 44px; min-height: 44px; }
+  .ink-input, input[type="text"], input[type="number"], input[inputmode] { min-height: 44px; }
 }
 
 /* The slider's hit area is the thumb height, not the 2px track. */
@@ -103,3 +104,16 @@ input[type="range"].ink-range::-webkit-slider-runnable-track { height: 2px; back
 input[type="range"].ink-range::-webkit-slider-thumb { margin-top: -13px; }
 input[type="range"].ink-range::-webkit-slider-runnable-track { margin-top: 0; }
 input[type="range"].ink-range::-moz-range-track { height: 2px; background: var(--ink-black); }
+
+/* Data tables in cards: numbers never wrap mid-value and adjacent columns never touch
+   ("DAYSCLEARED" on a phone). Labels (first column, headers) may wrap, so the table fits. */
+.ink-card table th + th,
+.ink-card table td + td { padding-left: 12px; }
+.ink-card table td + td { white-space: nowrap; }
+.ink-card__head .mono { white-space: nowrap; }
+@media (max-width: 480px) {
+  /* The cells carry 24px inline edge padding for desktop; phones need the width. */
+  .ink-card table th:first-child, .ink-card table td:first-child { padding-left: 16px !important; }
+  .ink-card table th:last-child, .ink-card table td:last-child { padding-right: 16px !important; }
+  .ink-card table th + th, .ink-card table td + td { padding-left: 10px; }
+}

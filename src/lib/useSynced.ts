@@ -7,6 +7,7 @@ import type { Entry } from "./log";
 import { DEFAULT_ACCENT } from "./color";
 import type { Settings } from "./settings";
 import { loadCoffee, loadEntries, loadSettings, saveCoffee, saveEntries, saveSettings } from "./storage";
+import { mergeWithServer } from "./merge";
 import { fetchCoffee, fetchEntries, fetchSettings, flushPending, loadPending, putSettings, sendOrQueue } from "./sync";
 
 export type SyncState = "loading" | "synced" | "offline";
@@ -45,15 +46,11 @@ export function useSynced() {
         if (cancelled) return;
         setSettings(serverSettings);
         saveSettings(serverSettings);
-        // 3. Anything only this device knows about (pre-sync history) goes up, then is merged.
-        const known = new Set(serverEntries.map((e) => e.id));
-        const localOnly = loadEntries().filter((e) => !known.has(e.id));
-        for (const e of localOnly) await sendOrQueue({ kind: "upsert-entry", entry: e });
-        const knownCoffee = new Set(serverCoffee.map((c) => c.id));
-        const localOnlyCoffee = loadCoffee().filter((c) => !knownCoffee.has(c.id));
-        for (const c of localOnlyCoffee) await sendOrQueue({ kind: "upsert-coffee", entry: c });
-        const mergedEntries = [...serverEntries, ...localOnly].sort((a, b) => a.at.localeCompare(b.at));
-        const mergedCoffee = [...serverCoffee, ...localOnlyCoffee].sort((a, b) => a.at.localeCompare(b.at));
+        // 3. The server wins. Rows only this device has survive only while still queued to send;
+        //    anything else was deleted elsewhere and must not be re-uploaded (see merge.ts).
+        const queued = loadPending();
+        const mergedEntries = mergeWithServer(serverEntries, loadEntries(), queued, "entry");
+        const mergedCoffee = mergeWithServer(serverCoffee, loadCoffee(), queued, "coffee");
         if (cancelled) return;
         setEntries(mergedEntries);
         saveEntries(mergedEntries);

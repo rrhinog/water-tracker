@@ -103,3 +103,10 @@ input[type="range"].ink-range::-webkit-slider-runnable-track { height: 2px; back
 input[type="range"].ink-range::-webkit-slider-thumb { margin-top: -13px; }
 input[type="range"].ink-range::-webkit-slider-runnable-track { margin-top: 0; }
 input[type="range"].ink-range::-moz-range-track { height: 2px; background: var(--ink-black); }
+
+/* Data tables in cards: numbers never wrap mid-value, and adjacent columns never touch
+   ("DAYSCLEARED" on a phone). The first column may still wrap if it has to. */
+.ink-card table th + th,
+.ink-card table td + td { white-space: nowrap; padding-left: 12px; }
+.ink-card table td:first-child { white-space: nowrap; }
+.ink-card__head .mono { white-space: nowrap; }

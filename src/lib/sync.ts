@@ -9,7 +9,7 @@ import { normalizeSettings, type Settings } from "./settings";
 
 const PENDING_KEY = "water.pending.v1";
 
-type Op =
+export type Op =
   | { kind: "upsert-entry"; entry: Entry }
   | { kind: "delete-entry"; id: string }
   | { kind: "upsert-coffee"; entry: CoffeeEntry }

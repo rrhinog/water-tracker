@@ -10,7 +10,7 @@ import { formatHour } from "@/lib/pace";
 import { toUnit, unitLabel } from "@/lib/settings";
 import { useSynced } from "@/lib/useSynced";
 
-const MONTH_FMT = new Intl.DateTimeFormat([], { month: "long", year: "numeric" });
+const MONTH_FMT = new Intl.DateTimeFormat([], { month: "short", year: "numeric" });
 const DATE_FMT = new Intl.DateTimeFormat([], { weekday: "short", day: "numeric", month: "short" });
 const TIME_FMT = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" });
 
@@ -118,7 +118,7 @@ export default function History() {
                   <span>{monthLabel(month)}</span>
                   <button type="button" className="ink-btn ink-btn--inverse ink-btn--icon" onClick={() => setMonth(addDays(`${month}-28`, 5).slice(0, 7))} disabled={month >= today.slice(0, 7)} aria-label="Next month">{"›"}</button>
                 </div>
-                <span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{clearedInMonth} of {trackedInMonth} cleared</span>
+                <span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{clearedInMonth}/{trackedInMonth} cleared</span>
               </div>
               <div className="ink-card__body" style={{ padding: "12px 16px 16px" }}>
                 <div className="grid grid-cols-7 gap-1">

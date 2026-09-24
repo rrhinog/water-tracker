@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Shell from "@/components/Shell";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
 import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
@@ -90,9 +90,9 @@ export default function Tracker() {
     return (
       <li key={c.id} style={{ fontSize: 15, minHeight: 48, borderBottom: last ? 0 : undefined }}>
         <span style={{ minWidth: 0 }}>
-          {c.flavour ?? "Coffee"} <span className="ink-list__meta">{TIME_FMT.format(new Date(c.at))}</span>
+          {c.flavour ?? "Coffee"}
           <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
-            {open ? `open · ${elapsedOf(c)}` : w ? `finished · ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : ""}
+            <Meta parts={[TIME_FMT.format(new Date(c.at)), open ? `open ${elapsedOf(c)}` : w ? `finished ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : null]} />
           </span>
           {open && flavours.length > 1 && (
             <span className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Flavour">
@@ -114,7 +114,7 @@ export default function Tracker() {
 
   // Direction in words, never colour (kit rule).
   const paceWord = cleared ? "Done for the day" : pace.delta >= 0 ? `▲ ${fmt(pace.delta, unit)} ahead` : `▼ ${fmt(Math.abs(pace.delta), unit)} behind`;
-  const nextWord = cleared ? "floor cleared" : pace.delta < 0 ? "drink now" : pace.nextDueH !== null ? `next by ${formatHour(pace.nextDueH)}` : "";
+  const nextWord = cleared ? "" : pace.delta < 0 ? "drink now" : pace.nextDueH !== null ? `next by ${formatHour(pace.nextDueH)}` : "";
   const firstWord = `first bottle by ${formatHour(pace.firstBottleByH)}${pace.firstBottleDone ? " · done" : pace.firstBottleMissed ? " · missed" : ""}`;
 
   const coffeeCard = (
@@ -163,7 +163,7 @@ export default function Tracker() {
         <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr] lg:gap-6">
           <div className="flex flex-col gap-4 lg:gap-6">
             <section className="eink" aria-label="Today's total">
-              <div className="eink__bar"><span>Today</span><span className="eink__bar-right">floor {fmt(floorOz, unit)}</span></div>
+              <div className="eink__bar"><span>Water</span><span className="eink__bar-right">floor {fmt(floorOz, unit)}</span></div>
               <div className="eink__body" style={{ paddingBottom: 16 }}>
                 <p className="eink__text" style={{ margin: "4px 0 6px", font: "600 56px/1 var(--font-mono)", letterSpacing: "-0.03em" }}>
                   {toUnit(total, unit)}
@@ -230,7 +230,7 @@ export default function Tracker() {
                       <input type="range" className="ink-range" min={0} max={FRACTIONS.length - 1} step={1} value={fractionIdx}
                         onChange={(e) => setFractionIdx(Number(e.target.value))} aria-label="Amount of bottle"
                         aria-valuetext={`${fractionLabel(fraction)} bottle, ${fmt(logOz, unit)}`} />
-                      <div className="flex justify-between" style={{ font: "500 12px/1 var(--font-mono)", color: "var(--ink-700)" }}>
+                      <div className="flex justify-between" style={{ font: "500 15px/1 var(--font-sans)", color: "var(--ink-700)" }}>
                         {FRACTIONS.map((f) => <span key={f}>{fractionLabel(f)}</span>)}
                       </div>
                     </div>
@@ -257,7 +257,7 @@ export default function Tracker() {
                 {openCoffee ? (
                   <button type="button" className="ink-btn ink-btn--inverse" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
                 ) : (
-                  <button type="button" className="ink-btn ink-btn--inverse" onClick={logCoffee}>Coffee</button>
+                  <button type="button" className="ink-btn ink-btn--inverse" onClick={logCoffee}>+ Coffee</button>
                 )}
               </div>
               <div className="ink-card__body flex items-baseline justify-between" style={{ padding: "14px 24px" }}>
@@ -284,15 +284,15 @@ export default function Tracker() {
                 <ul className="ink-list" style={{ borderTop: 0 }}>
                   {[...today].reverse().map((e, i, arr) => {
                     const d = durations.get(e.id);
-                    const durationWord = d ? ` · ${formatDuration(d.minutes)}${d.ozPerHour !== null ? ` · ${toUnit(d.ozPerHour, unit)} ${u}/h` : ""}` : "";
+                    const metaParts = [TIME_FMT.format(new Date(e.at)), d ? formatDuration(d.minutes) : null, d && d.ozPerHour !== null ? `${toUnit(d.ozPerHour, unit)} ${u}/h` : null];
                     return (
                       <li key={e.id} style={{ fontSize: 16, minHeight: 52, borderBottom: i === arr.length - 1 ? 0 : undefined }}>
                         <span>
                           {isStart(e) ? "Started bottle" : <>{sourceName(bottles, e.bottleId)}{e.bottleId !== "other" && ` ${fractionLabel(e.fraction).toLowerCase()}`}</>}
-                          <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>{TIME_FMT.format(new Date(e.at))}{durationWord}</span>
+                          <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}><Meta parts={metaParts} /></span>
                         </span>
                         <span className="flex items-center gap-3">
-                          {!isStart(e) && <span className="mono" style={{ fontSize: 15 }}>{fmt(e.oz, unit)}</span>}
+                          {!isStart(e) && <span className="mono" style={{ fontSize: 15, whiteSpace: "nowrap" }}>{fmt(e.oz, unit)}</span>}
                           <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label={isStart(e) ? "Remove bottle start" : `Remove ${e.oz} oz entry`} onClick={() => removeEntry(e.id)}>{"✕"}</button>
                         </span>
                       </li>
@@ -314,5 +314,17 @@ export default function Tracker() {
         </div>
       </main>
     </Shell>
+  );
+}
+
+/** "9:00 PM · 4h 20m · 8.3 oz/h": wraps between parts, never inside one. */
+function Meta({ parts }: { parts: (string | null)[] }) {
+  const shown = parts.filter((p): p is string => !!p);
+  return (
+    <>
+      {shown.map((p, i) => (
+        <Fragment key={i}>{i > 0 && " · "}<span style={{ whiteSpace: "nowrap" }}>{p}</span></Fragment>
+      ))}
+    </>
   );
 }

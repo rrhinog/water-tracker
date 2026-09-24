@@ -4,7 +4,7 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
 a fix to existing behaviour bumps the last.
 
-## [1.6] — YYYY-MM-DD
+## [1.6] — 2026-09-24
 
 Safe to change: nothing on screen changes; building and trying new features no longer puts real data at risk.
 
@@ -103,6 +103,7 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
+[1.6]: https://github.com/rrhinog/water-tracker/releases/tag/v1.6
 [1.5]: https://github.com/rrhinog/water-tracker/releases/tag/v1.5
 [1.4.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.4.1
 [1.4]: https://github.com/rrhinog/water-tracker/releases/tag/v1.4

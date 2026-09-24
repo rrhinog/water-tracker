@@ -124,6 +124,13 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
    line first; a phrase only breaks inside when it is wider than the line on its own (large display sizes). */
 .eink__foot { font-size: 14px; flex-wrap: wrap; row-gap: 4px; }
 
+/* Staging banner (APP_ENV=staging only, app/layout.tsx): an ink bar pinned to the top. It sits above
+   the page's own content and nowhere near the bottom tab bar or Save bar; the spacer reserves its
+   height so it hides nothing at rest. Scales with the display size like everything else. */
+.staging-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 28px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 12px; background: var(--ink-black); color: var(--ink-white); font: 500 12px/1 var(--font-mono); letter-spacing: .04em; white-space: nowrap; overflow: hidden; }
+.staging-banner__tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border: 2px solid var(--ink-white); border-radius: var(--radius-sm); font-weight: 600; letter-spacing: .12em; }
+.staging-spacer { height: 28px; flex: none; }
+
 /* ---- Touch targets (kit craft rule: >= 44px on touch) ----
    Written as var(--tap), not 44px, so they stay 44px on screen at every display size. */
 .ink-chip { min-height: 36px; }

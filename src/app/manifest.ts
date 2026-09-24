@@ -1,10 +1,15 @@
 import type { MetadataRoute } from "next";
+import { connection } from "next/server";
+import { appEnv, appNames } from "@/lib/appenv";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  // Request time, not build time: the staging container's APP_ENV names its home-screen install.
+  await connection();
+  const names = appNames(appEnv(process.env.APP_ENV));
   return {
     id: "/",
-    name: "Water Tracker",
-    short_name: "Water",
+    name: names.name,
+    short_name: names.shortName,
     description: "Daily water intake tracker",
     start_url: "/",
     scope: "/",

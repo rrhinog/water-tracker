@@ -101,6 +101,11 @@ can be tried on a phone before it reaches `main`):
 .\scripts\deploy.ps1 live      # refuses unless you are on main
 ```
 
+Staging is marked so it can't be mistaken for live: `APP_ENV=staging` in `docker-compose.yml` (read at
+request time, so the same image shows nothing on live) puts a **STAGING · demo data, not your log** bar
+at the top of every page and names the home-screen install "Water · Staging". Any other value, or none,
+is live.
+
 The deploy script migrates the target's own database before it replaces the container, and stops
 (leaving the old container running) if a migration fails. It then waits for `/api/health`:
 

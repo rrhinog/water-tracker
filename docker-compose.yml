@@ -26,6 +26,8 @@ services:
     container_name: water-tracker
     environment:
       - PORT=4210
+      # Anything but exactly "staging" is live (src/lib/appenv.ts); stated here for clarity.
+      - APP_ENV=live
       - DATABASE_URL=${LIVE_DATABASE_URL:?set LIVE_DATABASE_URL in .env}
     networks:
       - lifeos
@@ -42,6 +44,8 @@ services:
     container_name: water-tracker-staging
     environment:
       - PORT=4211
+      # Read at request time: shows the STAGING banner and names the install "Water · Staging".
+      - APP_ENV=staging
       # Its own database with demo data (scripts/seed-demo.ts), never live's.
       - DATABASE_URL=${STAGING_DATABASE_URL:?set STAGING_DATABASE_URL in .env}
     networks:

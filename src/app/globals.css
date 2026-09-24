@@ -104,9 +104,15 @@ input[type="range"].ink-range::-webkit-slider-thumb { margin-top: -13px; }
 input[type="range"].ink-range::-webkit-slider-runnable-track { margin-top: 0; }
 input[type="range"].ink-range::-moz-range-track { height: 2px; background: var(--ink-black); }
 
-/* Data tables in cards: numbers never wrap mid-value, and adjacent columns never touch
-   ("DAYSCLEARED" on a phone). The first column may still wrap if it has to. */
+/* Data tables in cards: numbers never wrap mid-value and adjacent columns never touch
+   ("DAYSCLEARED" on a phone). Labels (first column, headers) may wrap, so the table fits. */
 .ink-card table th + th,
-.ink-card table td + td { white-space: nowrap; padding-left: 12px; }
-.ink-card table td:first-child { white-space: nowrap; }
+.ink-card table td + td { padding-left: 12px; }
+.ink-card table td + td { white-space: nowrap; }
 .ink-card__head .mono { white-space: nowrap; }
+@media (max-width: 480px) {
+  /* The cells carry 24px inline edge padding for desktop; phones need the width. */
+  .ink-card table th:first-child, .ink-card table td:first-child { padding-left: 16px !important; }
+  .ink-card table th:last-child, .ink-card table td:last-child { padding-right: 16px !important; }
+  .ink-card table th + th, .ink-card table td + td { padding-left: 10px; }
+}

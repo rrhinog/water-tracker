@@ -6,7 +6,7 @@ export const waterEntries = pgTable("water_entries", {
   /** Client-generated id; POST is an upsert on it, so retries never duplicate. */
   id: text("id").primaryKey(),
   at: timestamp("at", { withTimezone: true }).notNull(),
-  /** owala | yeti | camelbak | other */
+  /** A bottle id from Settings, "other" for a typed amount, or "started" for a zero-ounce bottle-start marker. */
   source: text("source").notNull(),
   fraction: numeric("fraction", { precision: 4, scale: 2 }).notNull().default("1"),
   oz: numeric("oz", { precision: 6, scale: 1 }).notNull(),

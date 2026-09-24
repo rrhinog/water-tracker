@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Shell from "@/components/Shell";
 import { coffeeHistory, coffeeMonths, coffeesByDay, coffeesByFlavour, coffeeStatus, formatMinutes, sipWindow } from "@/lib/coffee";
+import { durationStats, formatDuration } from "@/lib/duration";
 import { addDays, buildDays, chartBars, firstBottleTable, monthCells, periodStats, streaks, type Period } from "@/lib/history";
 import { dayKey } from "@/lib/log";
+import { formatHour } from "@/lib/pace";
 import { toUnit, unitLabel } from "@/lib/settings";
 import { useSynced } from "@/lib/useSynced";
 
@@ -32,6 +34,7 @@ export default function History() {
   const months = periodStats(days, "month");
   const table = period === "month" ? months : periodStats(days, period).slice(-12);
   const firstBottle = firstBottleTable(days, settings.paceStartH + 4);
+  const pace = durationStats(entries);
   const cells = monthCells(days, month);
   const firstMonth = months[0]?.key ?? month;
   const maxOz = Math.max(floor, ...bars.map((d) => d.oz));
@@ -162,6 +165,30 @@ export default function History() {
                 </tbody>
               </table>
               <p className="ink-card__body" style={{ margin: 0, padding: "8px 24px 16px", font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>Only days with a timed first drink count here.</p>
+            </section>
+
+            <section className="ink-card">
+              <div className="ink-card__head"><span>Bottle pace</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>timed bottles only</span></div>
+              <div className="ink-card__body" style={{ paddingBottom: pace.byHour.length ? 8 : undefined }}>
+                <span className="eyebrow">Median full bottle</span>
+                <p style={{ margin: "6px 0 0", font: "600 26px/1 var(--font-mono)" }}>
+                  {pace.medianFullBottleMinutes !== null ? formatDuration(pace.medianFullBottleMinutes) : "—"}
+                  <span style={{ font: "400 14px/1 var(--font-sans)", color: "var(--ink-700)", marginLeft: 8 }}>{pace.fullBottles} {pace.fullBottles === 1 ? "bottle" : "bottles"}</span>
+                </p>
+                {pace.fullBottles === 0 && <p className="ink-empty__text" style={{ margin: "10px 0 0" }}>Tap Started bottle before the first drink; every finish after that times the next bottle.</p>}
+              </div>
+              {pace.byHour.length > 0 && (
+                <table className="w-full" style={{ fontSize: 15 }}>
+                  <thead><tr className="eyebrow" style={{ textAlign: "left" }}><th style={{ padding: "10px 24px 6px", fontWeight: 500 }}>finished at</th><th style={{ textAlign: "right", fontWeight: 500 }}>drinks</th><th style={{ textAlign: "right", padding: "10px 24px 6px", fontWeight: 500 }}>{u}/hour</th></tr></thead>
+                  <tbody className="mono">
+                    {pace.byHour.map((b) => (
+                      <tr key={b.hour} style={{ borderTop: "2px solid var(--ink-900)" }}>
+                        <td style={{ padding: "10px 24px" }}>{formatHour(b.hour)}</td><td style={{ textAlign: "right" }}>{b.drinks}</td><td style={{ textAlign: "right", padding: "10px 24px" }}>{toUnit(b.ozPerHour, unit)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </section>
           </div>
         </div>

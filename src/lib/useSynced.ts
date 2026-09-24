@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import type { CoffeeEntry } from "./coffee";
 import type { Entry } from "./log";
-import { DEFAULT_ACCENT } from "./color";
+import { DEFAULT_ACCENT, isTheme } from "./color";
 import type { Settings } from "./settings";
 import { loadCoffee, loadEntries, loadSettings, saveCoffee, saveEntries, saveSettings } from "./storage";
 import { mergeWithServer } from "./merge";
@@ -25,6 +25,14 @@ export function useSynced() {
   // The accent is a CSS variable on <html>; pages read it through the kit classes.
   useEffect(() => {
     const root = document.documentElement.style;
+    if (isTheme(settings.accent)) {
+      // A named theme carries light and dark shades; the stylesheet picks by colour scheme.
+      root.removeProperty("--ink-signal");
+      root.removeProperty("--ink-on-signal");
+      document.documentElement.dataset.accent = settings.accent;
+      return;
+    }
+    delete document.documentElement.dataset.accent;
     if (settings.accent === DEFAULT_ACCENT) {
       // Default = the ink itself, in whichever theme; let the stylesheet decide.
       root.removeProperty("--ink-signal");

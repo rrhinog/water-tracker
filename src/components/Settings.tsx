@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
-import { ACCENT_SWATCHES, accentReadable, contrast, isHex } from "@/lib/color";
+import { ACCENT_SWATCHES, THEMES, accentReadable, contrast, isHex, isTheme } from "@/lib/color";
 import { formatHour } from "@/lib/pace";
 import { bottleIdFor, fromUnit, normalizeSettings, toUnit, unitLabel, type Bottle, type Settings as SettingsT, type Unit } from "@/lib/settings";
 import { useSynced } from "@/lib/useSynced";
@@ -72,6 +72,7 @@ export default function Settings() {
         : settingsSave === "saved" && settingsSavedAt ? `Saved ${settingsSavedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
           : sync === "offline" ? "Offline — showing this device's copy" : "";
   const accentOk = accentReadable(draft.accent);
+  const previewHex = isTheme(draft.accent) ? THEMES[draft.accent].light : draft.accent;
 
   return (
     <Shell syncNote={sync === "offline" ? <span className="ink-tag">not synced</span> : null}>
@@ -138,7 +139,7 @@ export default function Settings() {
           <div className="ink-card__body flex flex-col gap-3" style={{ padding: 16 }}>
             <div className="flex flex-wrap items-center gap-2.5" role="group" aria-label="Accent colour">
               {ACCENT_SWATCHES.map((s) => (
-                <button key={s.hex} type="button" className="swatch" style={{ background: s.hex }} aria-label={s.name} aria-pressed={draft.accent === s.hex} onClick={() => patch({ accent: s.hex })} />
+                <button key={s.hex} type="button" className="swatch" style={{ background: s.preview ?? s.hex }} aria-label={s.name} aria-pressed={draft.accent === s.hex} onClick={() => patch({ accent: s.hex })} />
               ))}
               <label className="ml-auto flex items-center gap-2" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-700)" }}>
                 custom
@@ -146,9 +147,9 @@ export default function Settings() {
               </label>
             </div>
             <div className="flex items-center gap-3">
-              <span className="ink-btn ink-btn--primary ink-btn--sm" style={{ background: draft.accent, borderColor: draft.accent, pointerEvents: "none" }} aria-hidden="true">Log 36 oz</span>
+              <span className="ink-btn ink-btn--primary ink-btn--sm" style={{ background: previewHex, borderColor: previewHex, color: "#ffffff", pointerEvents: "none" }} aria-hidden="true">Log 36 oz</span>
               <span className="mono" style={{ font: "500 12px/1 var(--font-mono)", color: accentOk ? "var(--ink-700)" : "var(--ink-black)" }}>
-                {isHex(draft.accent) ? `${draft.accent} · ${contrast(draft.accent, "#ffffff")}:1 on white${accentOk ? "" : " — too light for white text"}` : "not a colour"}
+                {isTheme(draft.accent) ? `${THEMES[draft.accent].name} · ${THEMES[draft.accent].light} light, ${THEMES[draft.accent].dark} dark` : isHex(draft.accent) ? `${draft.accent} · ${contrast(draft.accent, "#ffffff")}:1 on white${accentOk ? "" : " — too light for white text"}` : "not a colour"}
               </span>
             </div>
             <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>Used for the Log button, active chips and tabs, and progress fills. Everything else stays ink.</p>

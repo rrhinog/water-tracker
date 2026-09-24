@@ -13,8 +13,9 @@ Every change follows the same path, whether it's mine or yours:
 4. `bun run test && bun run lint && bun run build` must pass. CI runs the same checks, plus a typecheck,
    on every pull request.
 5. Open a PR. Keep it to one feature. Say what you tested on a phone, because that's where it's used.
-6. Releases (maintainer): add the change to [CHANGELOG.md](CHANGELOG.md), tag `vX.Y` on `main`, and
-   publish a GitHub Release with the same notes.
+6. Releases (maintainer): add a `## [X.Y]` section to [CHANGELOG.md](CHANGELOG.md), then tag `main`
+   (`git tag -a vX.Y -m "vX.Y — short title"`) and push the tag. The Release workflow publishes the
+   GitHub Release from that section; it refuses a version the CHANGELOG doesn't describe.
 
 ## Ground rules
 

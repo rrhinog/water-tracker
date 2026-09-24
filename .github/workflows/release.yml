@@ -1,0 +1,34 @@
+# Pushing a version tag (git tag -a v1.6 -m "v1.6 — short title"; git push origin v1.6) publishes the
+# GitHub Release, with notes taken from that version's CHANGELOG.md section and the title from the
+# tag's message. Fails if the CHANGELOG has no section for the version. Never overwrites a release
+# that already exists.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # create the release; nothing else
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Notes and title
+        run: |
+          bash scripts/release-notes.sh "${GITHUB_REF_NAME#v}" > notes.md
+          git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          title="$(git tag -l --format='%(contents:subject)' "$GITHUB_REF_NAME")"
+          echo "TITLE=${title:-$GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; leaving it alone."
+            exit 0
+          fi
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$TITLE" --notes-file notes.md

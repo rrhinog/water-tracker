@@ -5,6 +5,7 @@ describe("display steps", () => {
   it("offers five sizes, smallest first, with the default among them", () => {
     expect(DISPLAY_STEPS).toEqual([80, 90, 100, 110, 125]);
     expect(DISPLAY_STEPS).toContain(DEFAULT_DISPLAY);
+    expect(DEFAULT_DISPLAY).toBe(90); // v1.7.1: pinned so a change is deliberate
   });
 
   it("recognises only exact steps", () => {

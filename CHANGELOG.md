@@ -4,6 +4,13 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
 a fix to existing behaviour bumps the last.
 
+## [1.7.1] — 2026-09-24
+
+### Changed
+- The display size starts at **90 %** on a device that hasn't picked one (was 100 %). The app's fixed sizes
+  read large on a phone at 100 %. A size already chosen on a device is kept; 100 % is one tap away in
+  Settings → Display.
+
 ## [1.7] — 2026-09-24
 
 Display size: the app can be made smaller or larger on each device.
@@ -126,6 +133,7 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
+[1.7.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.7.1
 [1.7]: https://github.com/rrhinog/water-tracker/releases/tag/v1.7
 [1.6]: https://github.com/rrhinog/water-tracker/releases/tag/v1.6
 [1.5]: https://github.com/rrhinog/water-tracker/releases/tag/v1.5

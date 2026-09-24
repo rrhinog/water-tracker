@@ -39,15 +39,47 @@ Requirements: [Bun](https://bun.sh), Docker, a PostgreSQL you can reach.
 git clone https://github.com/rrhinog/water-tracker.git
 cd water-tracker
 bun install
-cp .env.example .env            # fill in POSTGRES_PASSWORD and DATABASE_URL
+cp .env.example .env            # fill in the database URLs (see below)
 ```
 
-Create the database and tables (the schema is hand-written SQL in `drizzle/`, applied in order;
-each file runs once):
+### Databases
+
+Live and staging each get their **own** database, so trying a branch on staging can never touch
+real data. Create both (any Postgres login that may create tables works; a dedicated one is best):
 
 ```bash
-psql "$DATABASE_URL_WITHOUT_DB" -c "CREATE DATABASE water_tracker;"
-for f in drizzle/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
+psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE water_tracker;"
+psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE water_tracker_staging;"
+```
+
+`.env` names each database twice, because the containers and your machine reach Postgres by
+different names:
+
+| Variable | Used by | Host part |
+| --- | --- | --- |
+| `LIVE_DATABASE_URL` | the `live` container | `postgres:5432` (container name) |
+| `STAGING_DATABASE_URL` | the `staging` container | `postgres:5432` |
+| `LIVE_DATABASE_URL_FROM_HOST` | `migrate.ts live`, deploy | `127.0.0.1:5432` |
+| `STAGING_DATABASE_URL_FROM_HOST` | `migrate.ts staging`, `seed-demo.ts staging`, deploy | `127.0.0.1:5432` |
+| `DATABASE_URL` | `bun run dev`, scripts run without a target | `127.0.0.1:5432`, point it at staging |
+
+Create the tables. The schema is hand-written SQL in `drizzle/`; `scripts/migrate.ts` applies the
+files it has not applied before, in order, and records each one in a `schema_migrations` table:
+
+```bash
+bun scripts/migrate.ts live       # prints "migrations: up to date" or each file it applied
+bun scripts/migrate.ts staging
+```
+
+Already ran the files by hand before the runner existed? Record them without running them again:
+`bun scripts/migrate.ts live --baseline`.
+
+Fill staging with demo data (about 75 days of drinks and coffees, generated from a fixed seed). The
+script refuses any database whose name does not end in `_staging` or `_demo`, and refuses one that
+already has rows unless you pass `--reset`:
+
+```bash
+bun scripts/seed-demo.ts staging            # or --reset to replace what is there
 ```
 
 Develop:
@@ -63,9 +95,20 @@ Deploy with Docker (two containers from one image — `live` on :4210 and `stagi
 can be tried on a phone before it reaches `main`):
 
 ```powershell
-.\scripts\deploy.ps1 staging   # build + recreate + probe
+.\scripts\deploy.ps1 staging   # build + migrate staging's database + recreate + health check
 .\scripts\deploy.ps1 live      # refuses unless you are on main
 ```
+
+The deploy script migrates the target's own database before it replaces the container, and stops
+(leaving the old container running) if a migration fails. It then waits for `/api/health`:
+
+```bash
+curl http://127.0.0.1:4210/api/health   # {"ok":true,"version":"1.6.0+abc1234","db":true}
+```
+
+It answers `503` with `"ok": false` when the database is unreachable. Errors thrown in the browser
+are posted to `/api/client-errors` and show up as one `[client-error]` line each in
+`docker logs water-tracker` (message, stack, path and browser only; at most 20 a minute).
 
 `docker-compose.yml` binds to `127.0.0.1` only. To reach the app from a phone, add your LAN or
 Tailscale address in a `docker-compose.override.yml` (gitignored):

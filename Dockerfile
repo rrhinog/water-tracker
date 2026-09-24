@@ -25,5 +25,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
+# Short commit sha from scripts/deploy.ps1 (.git is not in the build context); /api/health reports it.
+ARG GIT_SHA=""
+ENV GIT_SHA=$GIT_SHA
 # PORT is set per service in docker-compose.yml (live 4210, staging 4211)
 CMD ["node", "server.js"]

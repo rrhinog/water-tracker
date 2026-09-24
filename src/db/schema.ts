@@ -1,5 +1,5 @@
 // Database schema (Drizzle). The SQL that creates these lives in drizzle/*.sql and is
-// applied by hand (see README "Database"); this file is the typed mirror the app reads.
+// applied by scripts/migrate.ts (see README "Run it"); this file is the typed mirror the app reads.
 import { boolean, jsonb, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const waterEntries = pgTable("water_entries", {

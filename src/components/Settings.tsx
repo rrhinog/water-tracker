@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Shell from "@/components/Shell";
+import { DISPLAY_STEPS, applyDisplay, type DisplayStep } from "@/lib/display";
 import { ACCENT_SWATCHES, THEMES, accentReadable, contrast, isHex, isTheme } from "@/lib/color";
 import { formatHour } from "@/lib/pace";
+import { loadDisplay, saveDisplay } from "@/lib/storage";
 import { bottleIdFor, fromUnit, normalizeSettings, toUnit, unitLabel, type Bottle, type Settings as SettingsT, type Unit } from "@/lib/settings";
 import { useSynced } from "@/lib/useSynced";
+
+// Size boxes hold a few digits: they keep their on-screen width at large display sizes so the name gets the room.
+const SIZE_BOX = { width: "min(96px, 96px / var(--display-scale))" };
 
 function same(a: SettingsT, b: SettingsT): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -19,6 +24,8 @@ export default function Settings() {
   const [newName, setNewName] = useState("");
   const [newSize, setNewSize] = useState("");
   const [newFlavour, setNewFlavour] = useState("");
+  // Display size is per device and applies on tap: outside the draft, so the Save bar never sees it.
+  const [display, setDisplay] = useState<DisplayStep>(loadDisplay);
 
   // Adopt a server/other-device copy unless the user is mid-edit (React's adjust-on-prop-change pattern).
   const [seen, setSeen] = useState<SettingsT>(settings);
@@ -59,6 +66,11 @@ export default function Settings() {
     setDraft(clean);
     setBaseline(clean);
   }
+  function pickDisplay(step: DisplayStep) {
+    setDisplay(step);
+    saveDisplay(step);
+    applyDisplay(step);
+  }
   function discard() {
     setDraft(baseline);
     setNewName("");
@@ -89,13 +101,13 @@ export default function Settings() {
               <li key={b.id} style={{ minHeight: 56, padding: "8px 16px", gap: 8 }}>
                 <input aria-label={`Name of ${b.name}`} value={b.name} onChange={(e) => setBottles(draft.bottles.map((x) => (x.id === b.id ? { ...x, name: e.target.value } : x)))} className="ink-input min-w-0 flex-1" />
                 <input aria-label={`Size of ${b.name} in ${u}`} type="number" inputMode="decimal" min={0} value={toUnit(b.oz, unit)}
-                  onChange={(e) => setBottles(draft.bottles.map((x) => (x.id === b.id ? { ...x, oz: fromUnit(Number(e.target.value), unit) } : x)))} className="ink-input mono w-24 shrink-0 text-right" />
+                  onChange={(e) => setBottles(draft.bottles.map((x) => (x.id === b.id ? { ...x, oz: fromUnit(Number(e.target.value), unit) } : x)))} className="ink-input mono shrink-0 text-right" style={SIZE_BOX} />
                 <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" onClick={() => setBottles(draft.bottles.filter((x) => x.id !== b.id))} disabled={draft.bottles.length === 1} aria-label={`Remove ${b.name}`}>{"✕"}</button>
               </li>
             ))}
             <li style={{ minHeight: 56, padding: "8px 16px", gap: 8, borderBottom: 0 }}>
               <input aria-label="New container name" placeholder="Name" value={newName} onChange={(e) => setNewName(e.target.value)} className="ink-input min-w-0 flex-1" />
-              <input aria-label={`New container size in ${u}`} type="number" inputMode="decimal" min={0} placeholder={u} value={newSize} onChange={(e) => setNewSize(e.target.value)} className="ink-input mono w-24 shrink-0 text-right" />
+              <input aria-label={`New container size in ${u}`} type="number" inputMode="decimal" min={0} placeholder={u} value={newSize} onChange={(e) => setNewSize(e.target.value)} className="ink-input mono shrink-0 text-right" style={SIZE_BOX} />
               <button type="button" className="ink-btn" onClick={addBottle} disabled={!newName.trim() || !(Number(newSize) > 0)}>Add</button>
             </li>
           </ul>
@@ -183,13 +195,29 @@ export default function Settings() {
           </div>
         </section>
 
+        <section className="ink-card">
+          <div className="ink-card__head"><span>Display</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>This device only</span></div>
+          <div className="ink-card__body flex flex-col gap-3" style={{ padding: 16 }}>
+            <div className="flex flex-col gap-1.5">
+              <span className="eyebrow">Size</span>
+              <div className="flex gap-1.5" role="group" aria-label="Display size">
+                {DISPLAY_STEPS.map((step) => (
+                  <button key={step} type="button" className="ink-chip min-w-0 flex-1 justify-center" style={{ height: 40, padding: "0 4px" }} aria-pressed={display === step} onClick={() => pickDisplay(step)}>{step}%</button>
+                ))}
+              </div>
+            </div>
+            <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>Scales the whole app. Applies right away and is kept on this device only; your phone and computer can differ.</p>
+          </div>
+        </section>
+
         {/* Sticky action bar: the one place changes are committed. Sits above the phone tab bar. */}
         <div className="fixed inset-x-0 bottom-[76px] lg:bottom-0 lg:left-60" style={{ borderTop: "2px solid var(--ink-black)", background: "var(--ink-white)", padding: "12px 16px" }}>
-          <div className="mx-auto flex max-w-md items-center justify-between gap-3 lg:max-w-3xl">
-            <p className="mono" style={{ margin: 0, font: "500 13px/1.3 var(--font-mono)", color: "var(--ink-700)" }} aria-live="polite">
+          {/* Wraps the message onto its own line only when the buttons need the width (large display sizes). */}
+          <div className="mx-auto flex max-w-md flex-wrap items-center justify-between gap-x-3 gap-y-2 lg:max-w-3xl">
+            <p className="mono" style={{ margin: 0, flex: "1 1 64px", minWidth: 0, overflowWrap: "anywhere", font: "500 13px/1.3 var(--font-mono)", color: "var(--ink-700)" }} aria-live="polite">
               {problems.length ? problems[0] : dirty ? "Unsaved changes" : status || "All changes saved"}
             </p>
-            <div className="flex gap-2">
+            <div className="ml-auto flex gap-2">
               <button type="button" className="ink-btn ink-btn--ghost" onClick={discard} disabled={!dirty}>Discard</button>
               <button type="button" className="ink-btn ink-btn--primary" onClick={save} disabled={!dirty || problems.length > 0}>Save changes</button>
             </div>

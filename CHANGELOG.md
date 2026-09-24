@@ -4,6 +4,23 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
 a fix to existing behaviour bumps the last.
 
+## [1.7] — YYYY-MM-DD
+
+Display size: the app can be made smaller or larger on each device.
+
+### Added
+- Settings → **Display**: five sizes, 80 · 90 · 100 · 110 · 125 %, that scale the whole app. The size
+  applies as you tap, is kept on this device only (not synced, not part of Save), and is applied
+  before the first paint, so a reload never flashes at 100 %. The default stays 100 %.
+
+### Changed
+- Touch targets are sized so they stay at least 44 px on screen at every display size.
+- At large sizes on a phone, crowded rows wrap instead of pushing the page sideways: the Today and
+  History headers, card headers, the Settings save bar and the pace line; table gutters narrow to the
+  normal column gap. Nothing moves at 100 %.
+- The small flavour chips on an open coffee meet the 44 px touch target on phones (they were 32 px).
+- `package.json` carries the app version 1.7.0.
+
 ## [1.6] — 2026-09-24
 
 Safe to change: nothing on screen changes; building and trying new features no longer puts real data at risk.

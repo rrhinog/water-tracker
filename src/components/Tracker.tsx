@@ -97,7 +97,7 @@ export default function Tracker() {
           {open && flavours.length > 1 && (
             <span className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Flavour">
               {flavours.map((f) => (
-                <button key={f} type="button" className="ink-chip" style={{ minHeight: 32, height: 32, padding: "0 10px", fontSize: 12 }} aria-pressed={c.flavour === f} onClick={() => updateCoffee({ ...c, flavour: f })}>{f}</button>
+                <button key={f} type="button" className="ink-chip" style={{ height: 32, padding: "0 10px", fontSize: 12 }} aria-pressed={c.flavour === f} onClick={() => updateCoffee({ ...c, flavour: f })}>{f}</button>
               ))}
             </span>
           )}
@@ -143,12 +143,12 @@ export default function Tracker() {
   return (
     <Shell aside={coffeeCard} syncNote={syncNote}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 lg:max-w-none lg:gap-6 lg:p-10">
-        <header className="flex items-end justify-between">
+        <header className="flex flex-wrap items-end justify-between gap-y-2">
           <div className="flex flex-col gap-1">
             <span className="eyebrow">{DAY_FMT.format(now)}</span>
             <h1 style={{ margin: 0, font: "800 34px/1 var(--font-sans)", letterSpacing: "-0.03em" }} className="lg:!text-[44px]">Today</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2">
             <span className="lg:hidden">{syncNote}</span>
             <div className="flex gap-1.5" role="group" aria-label="Pace mode">
               {(["even", "history"] as const).map((m) => (

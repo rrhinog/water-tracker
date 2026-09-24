@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
@@ -95,6 +95,20 @@ describe("Tracker", () => {
     fireEvent.click(save);
     expect(JSON.parse(window.localStorage.getItem("water.settings.v1")!).unit).toBe("ml");
     expect(save.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("display size applies on tap, stays on this device, and never touches the Save bar", () => {
+    render(<Settings />);
+    const group = screen.getByRole("group", { name: "Display size" });
+    expect(within(group).getByRole("button", { name: "100%" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(within(group).getByRole("button", { name: "80%" }));
+    expect(within(group).getByRole("button", { name: "80%" }).getAttribute("aria-pressed")).toBe("true");
+    expect(document.documentElement.style.getPropertyValue("--display-scale")).toBe("0.8");
+    expect(window.localStorage.getItem("water.display.v1")).toBe("80");
+    expect(window.localStorage.getItem("water.settings.v1")).toBeNull(); // not a synced setting
+    expect(screen.getByText("All changes saved")).toBeDefined();
+    expect(screen.getByRole("button", { name: "Save changes" }).hasAttribute("disabled")).toBe(true);
+    document.documentElement.removeAttribute("style");
   });
 
   it("settings page blocks Save on an invalid draft", () => {

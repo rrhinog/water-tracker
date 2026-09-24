@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter_Tight } from "next/font/google";
 import "./globals.css";
+import DisplaySize from "@/components/DisplaySize";
 import RegisterSW from "@/components/RegisterSW";
+import { displayScript } from "@/lib/display";
 
 // Ink Kit faces, self-hosted by Next at build time (no runtime request to Google).
 const sans = Inter_Tight({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-inter-tight", display: "swap" });
@@ -25,9 +27,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`h-full ${sans.variable} ${mono.variable}`}>
+    // suppressHydrationWarning: the head script sets the display size on <html> before React hydrates.
+    <html lang="en" className={`h-full ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Display size (Settings → Display), applied while parsing so a reload never flashes at 100%. */}
+        <script dangerouslySetInnerHTML={{ __html: displayScript() }} />
+      </head>
       <body className="ink-root min-h-full flex flex-col">
         {children}
+        <DisplaySize />
         <RegisterSW />
       </body>
     </html>

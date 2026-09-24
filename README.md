@@ -24,6 +24,8 @@ What it does:
   first-drink-vs-floor and bottle-pace breakdowns.
 - **Make it yours.** Bottles, daily floor, oz or mL, pace window, coffee flavours and a colour theme,
   saved on your server.
+- **Display size.** Scale the whole app to 80, 90, 100, 110 or 125 %, per device (a phone and a desktop
+  can differ). Buttons stay at least 44 px to the touch at every size, and pinch-to-zoom still works.
 - **Installable and offline-first.** Add it to your home screen over HTTPS; it opens with no signal, and
   taps land locally and sync when the server is reachable.
 
@@ -145,6 +147,10 @@ Everything personal lives in **Settings** (the gear on the main screen): your co
 sizes, the daily floor, oz or mL, the pace window and default pace mode. First run starts with the
 author's defaults; change them once and every device follows. The "my history" pace curve is built
 from your own cleared days once you have ten; a built-in curve stands in before that.
+
+**Display** is the exception: the size is kept in the browser on each device, applies as soon as you
+tap it, and is not part of Save. The default for a device that hasn't picked one is `DEFAULT_DISPLAY`
+in `src/lib/display.ts`.
 
 ## Stack
 

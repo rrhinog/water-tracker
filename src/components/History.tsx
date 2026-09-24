@@ -70,12 +70,12 @@ export default function History() {
   return (
     <Shell syncNote={sync === "offline" ? <span className="ink-tag">not synced</span> : null}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 lg:max-w-5xl lg:gap-6 lg:p-10">
-        <header className="flex items-end justify-between gap-3">
+        <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div className="flex flex-col gap-1">
             <span className="eyebrow">Water</span>
             <h1 style={{ margin: 0, font: "800 34px/1 var(--font-sans)", letterSpacing: "-0.03em" }}>History</h1>
           </div>
-          <div className="flex gap-1.5" role="group" aria-label="Period">
+          <div className="ml-auto flex gap-1.5" role="group" aria-label="Period">
             {(["week", "month", "quarter"] as const).map((p) => (
               <button key={p} type="button" className="ink-chip capitalize" style={{ padding: "0 12px", fontSize: 13 }} aria-pressed={period === p} onClick={() => setPeriod(p)}>{p}</button>
             ))}

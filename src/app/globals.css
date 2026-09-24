@@ -28,6 +28,14 @@
   /* Coffee marks: plain ink unless a theme colours them. */
   --coffee: var(--ink-black);
   --on-coffee: var(--ink-white);
+  /* Display size (Settings > Display, per device). The inline script in app/layout.tsx sets
+     --display-scale on <html> before first paint; zoom scales every fixed px in the app with it. */
+  --display-scale: 1;
+  zoom: var(--display-scale);
+  /* A 44px touch target *on screen*: zoom multiplies this back up, so 80% gives 55px of CSS = 44px. */
+  --tap: calc(44px / var(--display-scale));
+  /* 1 above 100%, 0 at or below: lets a rule tighten only when the app is enlarged. */
+  --display-up: clamp(0, (var(--display-scale) - 1) * 100, 1);
 }
 
 /* Dark = the kit's inversion: ink and paper swap, greys re-rank. */
@@ -109,25 +117,36 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
 .cal-cell.today { outline: 2px solid var(--ink-black); outline-offset: 2px; }
 
 /* Accent swatch buttons in Settings. */
-.swatch { width: 44px; height: 44px; border-radius: 999px; border: 2px solid var(--ink-black); cursor: pointer; padding: 0; }
+.swatch { width: 44px; height: 44px; min-width: var(--tap); min-height: var(--tap); border-radius: 999px; border: 2px solid var(--ink-black); cursor: pointer; padding: 0; }
 .swatch[aria-pressed="true"] { outline: 2px solid var(--ink-black); outline-offset: 3px; }
 
-/* E-ink foot: keep pace words on one line on a phone. */
+/* E-ink foot: keep pace words on one line on a phone. flex-wrap moves a whole phrase to the next
+   line first; a phrase only breaks inside when it is wider than the line on its own (large display sizes). */
 .eink__foot { font-size: 14px; flex-wrap: wrap; row-gap: 4px; }
-.eink__foot > * { white-space: nowrap; }
 
-/* ---- Touch targets (kit craft rule: >= 44px on touch) ---- */
+/* Staging banner (APP_ENV=staging only, app/layout.tsx): an ink bar pinned to the top. It sits above
+   the page's own content and nowhere near the bottom tab bar or Save bar; the spacer reserves its
+   height so it hides nothing at rest. Scales with the display size like everything else. */
+.staging-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 28px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 12px; background: var(--ink-black); color: var(--ink-white); font: 500 12px/1 var(--font-mono); letter-spacing: .04em; white-space: nowrap; overflow: hidden; }
+.staging-banner__tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border: 2px solid var(--ink-white); border-radius: var(--radius-sm); font-weight: 600; letter-spacing: .12em; }
+.staging-spacer { height: 28px; flex: none; }
+
+/* ---- Touch targets (kit craft rule: >= 44px on touch) ----
+   Written as var(--tap), not 44px, so they stay 44px on screen at every display size. */
 .ink-chip { min-height: 36px; }
-.ink-btn--icon { min-width: 44px; padding: 0 8px; }
+.ink-btn--icon { min-width: var(--tap); padding: 0 8px; }
 .ink-tabbar { height: var(--tabbar-h, 76px); }
+.ink-list--nav a { min-height: 48px; }
 @media (pointer: coarse) {
-  .ink-chip, .ink-btn, .ink-btn--sm, .ink-btn--inverse { min-height: 44px; }
-  .ink-btn--icon { min-width: 44px; min-height: 44px; }
-  .ink-input, input[type="text"], input[type="number"], input[inputmode] { min-height: 44px; }
+  .ink-chip, .ink-btn, .ink-btn--sm, .ink-btn--inverse { min-height: var(--tap); }
+  .ink-chip { min-width: var(--tap); }
+  .ink-btn--icon { min-width: var(--tap); min-height: var(--tap); }
+  .ink-input, input[type="text"], input[type="number"], input[inputmode] { min-height: var(--tap); }
+  .ink-list--nav a { min-height: max(48px, var(--tap)); }
 }
 
 /* The slider's hit area is the thumb height, not the 2px track. */
-input[type="range"].ink-range { height: 44px; background: transparent; margin: 0; }
+input[type="range"].ink-range { height: var(--tap); background: transparent; margin: 0; }
 input[type="range"].ink-range::-webkit-slider-runnable-track { height: 2px; background: var(--ink-black); }
 input[type="range"].ink-range::-webkit-slider-thumb { margin-top: -13px; }
 input[type="range"].ink-range::-webkit-slider-runnable-track { margin-top: 0; }
@@ -139,9 +158,16 @@ input[type="range"].ink-range::-moz-range-track { height: 2px; background: var(-
 .ink-card table td + td { padding-left: 12px; }
 .ink-card table td + td { white-space: nowrap; }
 .ink-card__head .mono { white-space: nowrap; }
+/* At large display sizes a head's right-hand label drops to a second line instead of widening the
+   page. No column gap, so a head that fits today still fits and never wraps early. */
+.ink-card__head { flex-wrap: wrap; row-gap: 4px; }
 @media (max-width: 480px) {
   /* The cells carry 24px inline edge padding for desktop; phones need the width. */
-  .ink-card table th:first-child, .ink-card table td:first-child { padding-left: 16px !important; }
-  .ink-card table th:last-child, .ink-card table td:last-child { padding-right: 16px !important; }
-  .ink-card table th + th, .ink-card table td + td { padding-left: 10px; }
+  /* Above 100% display size the gaps hold their on-screen size, so the numbers get the width. */
+  .ink-card table th:first-child, .ink-card table td:first-child { padding-left: min(16px, 16px / var(--display-scale)) !important; }
+  .ink-card table th:last-child, .ink-card table td:last-child { padding-right: min(16px, 16px / var(--display-scale)) !important; }
+  .ink-card table th + th, .ink-card table td + td { padding-left: min(10px, 10px / var(--display-scale)); }
+  /* Above 100%, the 24px desktop gutters after the first and before the last column become the 10px gap. */
+  .ink-card table th:first-child, .ink-card table td:first-child { padding-right: calc(24px - 14px * var(--display-up)) !important; }
+  .ink-card table th + th:last-child, .ink-card table td + td:last-child { padding-left: calc(24px - 14px * var(--display-up)) !important; }
 }

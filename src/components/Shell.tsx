@@ -37,7 +37,7 @@ export default function Shell({ children, aside, syncNote }: { children: ReactNo
         <ul className="ink-list ink-list--nav" style={{ borderTop: 0 }}>
           {TABS.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} className={active(t.href) ? "is-active" : ""} aria-current={active(t.href) ? "page" : undefined} style={{ fontSize: 16, minHeight: 48 }}>
+              <Link href={t.href} className={active(t.href) ? "is-active" : ""} aria-current={active(t.href) ? "page" : undefined} style={{ fontSize: 16 }}>
                 {t.label}
               </Link>
             </li>

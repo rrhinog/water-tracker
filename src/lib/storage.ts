@@ -1,5 +1,6 @@
 // Browser-only persistence (localStorage). Roadmap item 6 replaces this with Postgres.
 import { DEFAULT_SETTINGS, normalizeSettings, type Settings } from "./settings";
+import { DEFAULT_DISPLAY, DISPLAY_KEY, parseDisplay, type DisplayStep } from "./display";
 import type { CoffeeEntry } from "./coffee";
 import type { Entry } from "./log";
 import type { PaceMode } from "./pace";
@@ -105,5 +106,24 @@ export function saveSettings(s: Settings): void {
     window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
   } catch {
     // ignore
+  }
+}
+
+// Display size is per device on purpose: never sent to the server, never part of Settings' Save bar.
+export function loadDisplay(): DisplayStep {
+  if (!canStore()) return DEFAULT_DISPLAY;
+  try {
+    return parseDisplay(window.localStorage.getItem(DISPLAY_KEY));
+  } catch {
+    return DEFAULT_DISPLAY;
+  }
+}
+
+export function saveDisplay(step: DisplayStep): void {
+  if (!canStore()) return;
+  try {
+    window.localStorage.setItem(DISPLAY_KEY, String(step));
+  } catch {
+    // ignore: the size still applies for this session
   }
 }

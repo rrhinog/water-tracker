@@ -1,13 +1,23 @@
 // Server sync with an offline-first local cache.
 //
-// Reads: the cache renders instantly; a fetch refreshes it. Writes: applied locally first,
-// then sent; a failed send is queued in localStorage and retried on the next load, so a tap
-// never fails and never duplicates (POST is an upsert on the entry id).
+// Reads: the cache renders instantly; a fetch refreshes it. Writes: applied locally first, then
+// appended to a queue in localStorage and sent in order; what fails stays queued and is retried
+// (useSynced: on load, when the browser comes back online or to the foreground, and every few
+// seconds while offline). A tap never fails and never duplicates (POST is an upsert on the id).
+//
+// Every write goes through the queue, even when it is empty: sending a new change ahead of older
+// queued ones would let an Undo reach the server before the drink it removes, and the drink would
+// come back when the queue caught up.
 import type { CoffeeEntry } from "./coffee";
 import type { Entry } from "./log";
 import { normalizeSettings, type Settings } from "./settings";
 
 const PENDING_KEY = "water.pending.v1";
+const SEND_TIMEOUT_MS = 10_000;
+
+function timeout(ms: number): AbortSignal | undefined {
+  return typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(ms) : undefined;
+}
 
 export type Op =
   | { kind: "upsert-entry"; entry: Entry }
@@ -47,23 +57,28 @@ async function send(op: Op): Promise<void> {
         : op.kind === "upsert-coffee"
           ? ["/api/coffee", { method: "POST", body: JSON.stringify(op.entry), headers: { "content-type": "application/json" } }]
           : [`/api/coffee/${encodeURIComponent(op.id)}`, { method: "DELETE" }];
-  const res = await fetch(url, init);
+  // A server that can't be reached can hang rather than refuse; give up so the queue can retry.
+  const res = await fetch(url, { ...init, signal: timeout(SEND_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`${op.kind} failed: ${res.status}`);
 }
 
-/** Send one op now; on failure, queue it. Returns true if it reached the server. */
+/** Queue one op and flush the queue in order. Returns true if the queue is empty afterwards. */
 export async function sendOrQueue(op: Op): Promise<boolean> {
-  try {
-    await send(op);
-    return true;
-  } catch {
-    savePending([...loadPending(), op]);
-    return false;
-  }
+  savePending([...loadPending(), op]);
+  return (await flushPending()) === 0;
 }
 
-/** Retry everything queued, in order. Stops at the first failure so order is preserved. */
-export async function flushPending(): Promise<number> {
+// One flush at a time: two overlapping flushes could each send the same queue and interleave
+// (upsert, delete, upsert), bringing a deleted row back.
+let flushing: Promise<number> = Promise.resolve(0);
+
+/** Retry everything queued, in order. Stops at the first failure so order is preserved. Returns what is left. */
+export function flushPending(): Promise<number> {
+  flushing = flushing.then(flushOnce, flushOnce);
+  return flushing;
+}
+
+async function flushOnce(): Promise<number> {
   const ops = loadPending();
   let sent = 0;
   for (const op of ops) {
@@ -74,8 +89,10 @@ export async function flushPending(): Promise<number> {
       break;
     }
   }
-  savePending(ops.slice(sent));
-  return ops.length - sent;
+  // Re-read: a tap during the flush appended to the end, and must not be lost.
+  const left = loadPending().slice(sent);
+  savePending(left);
+  return left.length;
 }
 
 export async function fetchEntries(): Promise<Entry[]> {

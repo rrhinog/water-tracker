@@ -5,6 +5,8 @@ import "./globals.css";
 import DisplaySize from "@/components/DisplaySize";
 import RegisterSW from "@/components/RegisterSW";
 import { appEnv, appNames, STAGING_BANNER } from "@/lib/appenv";
+import { appVersion } from "@/lib/health";
+import pkg from "../../package.json";
 import { displayScript } from "@/lib/display";
 
 // Ink Kit faces, self-hosted by Next at build time (no runtime request to Google).
@@ -42,7 +44,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const staging = (await currentEnv()) === "staging";
   return (
     // suppressHydrationWarning: the head script sets the display size on <html> before React hydrates.
-    <html lang="en" className={`h-full ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+    // data-version: the release this page came from; the update banner compares it with /api/health.
+    <html lang="en" className={`h-full ${sans.variable} ${mono.variable}`} data-version={appVersion(pkg.version, process.env.GIT_SHA)} suppressHydrationWarning>
       <head>
         {/* Display size (Settings → Display), applied while parsing so a reload never flashes at 100%. */}
         <script dangerouslySetInnerHTML={{ __html: displayScript() }} />

@@ -1,23 +1,25 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Shell from "@/components/Shell";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
 import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
 import { bottleDurations, drinks, formatDuration, isStart, makeStartEntry } from "@/lib/duration";
 import { clearedDayProfiles } from "@/lib/history";
-import { dayKey, entriesForDay, makeCustomEntry, makeEntry, recentCustomAmounts, totalOz } from "@/lib/log";
+import { byTime, dayKey, entriesForDay, lastDrink, makeCustomEntry, makeEntry, recentCustomAmounts, refillOf, totalOz, type Entry } from "@/lib/log";
 import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
 import { bottleById, fmt, fromUnit, sourceName, toUnit, unitLabel } from "@/lib/settings";
 import { loadBottle, loadPaceMode, saveBottle, savePaceMode } from "@/lib/storage";
+import { makeUndo, undoMessage, type Undo } from "@/lib/undo";
 import { useSynced } from "@/lib/useSynced";
+import { retime, timeValue, YESTERDAY_DEFAULT_TIME, yesterdayAt } from "@/lib/when";
 
 const DAY_FMT = new Intl.DateTimeFormat([], { weekday: "short", day: "numeric", month: "short" });
 const TIME_FMT = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" });
 
 export default function Tracker() {
   // Loaded with ssr: false (see page.tsx), so localStorage is readable in lazy initializers.
-  const { entries, coffees, settings, sync, pending, addEntry, removeEntry, addCoffee, updateCoffee, removeCoffee } = useSynced();
+  const { entries, coffees, settings, offline, addEntry, updateEntry, removeEntry, addCoffee, updateCoffee, removeCoffee } = useSynced();
   // A ticking clock so an open coffee's elapsed time updates once a minute.
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -34,6 +36,19 @@ export default function Tracker() {
   const [other, setOther] = useState(false);
   const [paceOverride, setPaceOverride] = useState<PaceMode | null>(loadPaceMode);
   const [customText, setCustomText] = useState("");
+  // Log for yesterday: a forgotten evening bottle. Goes back to Today after each log.
+  const [forYesterday, setForYesterday] = useState(false);
+  const [yesterdayTime, setYesterdayTime] = useState(YESTERDAY_DEFAULT_TIME);
+  // The undo bar after the latest log; it closes itself when the window runs out.
+  // `from` is the control it floats next to: the Log button, the refilled row, or the coffee button.
+  const [undo, setUndo] = useState<(Undo & { from: UndoFrom }) | null>(null);
+  useEffect(() => {
+    if (!undo) return;
+    const id = setTimeout(() => setUndo(null), Math.max(0, undo.until - Date.now()));
+    return () => clearTimeout(id);
+  }, [undo]);
+  // The row whose time is being changed, with the picker's value.
+  const [editing, setEditing] = useState<{ id: string; value: string; error: string | null } | null>(null);
 
   const bottle = (pickedId && bottleById(bottles, pickedId)) || bottles[0];
   const paceMode: PaceMode = paceOverride ?? settings.defaultPaceMode;
@@ -47,19 +62,45 @@ export default function Tracker() {
     setPaceOverride(mode);
     savePaceMode(mode);
   }
+  /** When a log lands: now, or yesterday at the picked time. */
+  function logTime(): Date {
+    const now = new Date();
+    return forYesterday ? (yesterdayAt(yesterdayTime, now) ?? yesterdayAt(YESTERDAY_DEFAULT_TIME, now)!) : now;
+  }
+  /** Every drink log goes through here: saved, offered for undo, and the log goes back to Today. */
+  function logged(entry: Entry, from: UndoFrom = "log") {
+    addEntry(entry);
+    const yesterday = dayKey(new Date(entry.at)) !== dayKey(new Date());
+    setUndo({ ...makeUndo("entry", entry.id, undoMessage({ amount: fmt(entry.oz, unit), yesterday }), new Date().getTime()), from });
+    setForYesterday(false);
+    setYesterdayTime(YESTERDAY_DEFAULT_TIME);
+  }
   function logCustom(oz: number) {
     if (!(oz > 0)) return;
-    addEntry(makeCustomEntry(oz, new Date()));
+    logged(makeCustomEntry(oz, logTime()));
     setCustomText("");
     setOther(false);
   }
   function log(fraction: Fraction) {
-    addEntry(makeEntry(bottle, fraction, new Date()));
+    logged(makeEntry(bottle, fraction, logTime()));
     setFractionIdx(FRACTIONS.length - 1);
+  }
+  function undoLast() {
+    if (!undo) return;
+    if (undo.kind === "entry") removeEntry(undo.id);
+    else removeCoffee(undo.id);
+    setUndo(null);
+  }
+  function saveTime(e: Entry) {
+    if (!editing) return;
+    const r = retime(e, editing.value, new Date());
+    if (!r.ok) return setEditing({ ...editing, error: r.error });
+    updateEntry(r.entry);
+    setEditing(null);
   }
 
   const now = new Date();
-  const today = entriesForDay(entries, now);
+  const today = byTime(entriesForDay(entries, now));
   const total = totalOz(today);
   const remaining = Math.max(0, floorOz - total);
   const pct = Math.min(100, (total / floorOz) * 100);
@@ -71,6 +112,7 @@ export default function Tracker() {
   const customOz = customValid ? fromUnit(customValue, unit) : 0;
   const recents = recentCustomAmounts(entries);
   const todayDrinks = drinks(today);
+  const refill = lastDrink(today);
   const firstAt = todayDrinks.length > 0 ? new Date(todayDrinks[0].at) : null;
   // "Started bottle" only matters before the first finish; after that, each finish is the next bottle's start.
   const canStart = todayDrinks.length === 0 && !today.some(isStart);
@@ -82,7 +124,14 @@ export default function Tracker() {
   const openCoffee = coffees.find((c) => isOpen(c, now)) ?? null;
   const flavours = settings.flavours;
   const defaultFlavour = lastFlavour(coffees) ?? flavours[0];
-  const logCoffee = () => addCoffee(makeCoffee(new Date(), defaultFlavour));
+  const logCoffee = () => {
+    const c = makeCoffee(new Date(), defaultFlavour);
+    addCoffee(c);
+    setUndo({ ...makeUndo("coffee", c.id, undoMessage("coffee"), new Date().getTime()), from: "coffee" });
+  };
+  // The bar goes as soon as its row does (removed by hand), not only when the time runs out.
+  const undoShown = undo && (undo.kind === "entry" ? entries : coffees).some((r) => r.id === undo.id) ? undo : null;
+  const undoBar = (from: UndoFrom) => (undoShown?.from === from ? <UndoBar message={undoShown.message} onUndo={undoLast} /> : null);
   const elapsedOf = (c: { at: string }) => formatMinutes(Math.round((now.getTime() - new Date(c.at).getTime()) / 60000));
   const coffeeRow = (c: (typeof coffees)[number], last = false) => {
     const open = isOpen(c, now);
@@ -126,22 +175,23 @@ export default function Tracker() {
       <p className="ink-list__meta" style={{ margin: "6px 0 12px" }}>
         {coffee.todayCount === 0 ? "today: clean so far" : `${coffee.todayCount} today · resets tomorrow`}
       </p>
-      {openCoffee ? (
-        <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>
-          Finished ({elapsedOf(openCoffee)})
-        </button>
-      ) : (
-        <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
-          Log a coffee
-        </button>
-      )}
+      <div className="undo-anchor">
+        {openCoffee ? (
+          <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>
+            Finished ({elapsedOf(openCoffee)})
+          </button>
+        ) : (
+          <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
+            Log a coffee
+          </button>
+        )}
+        {undoBar("coffee")}
+      </div>
     </>
   );
 
-  const syncNote = sync === "offline" ? <span className="ink-tag">not synced{pending > 0 ? ` · ${pending}` : ""}</span> : null;
-
   return (
-    <Shell aside={coffeeCard} syncNote={syncNote}>
+    <Shell aside={coffeeCard} offline={offline}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 lg:max-w-none lg:gap-6 lg:p-10">
         <header className="flex flex-wrap items-end justify-between gap-y-2">
           <div className="flex flex-col gap-1">
@@ -149,7 +199,6 @@ export default function Tracker() {
             <h1 style={{ margin: 0, font: "800 34px/1 var(--font-sans)", letterSpacing: "-0.03em" }} className="lg:!text-[44px]">Today</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="lg:hidden">{syncNote}</span>
             <div className="flex gap-1.5" role="group" aria-label="Pace mode">
               {(["even", "history"] as const).map((m) => (
                 <button key={m} type="button" className="ink-chip" style={{ padding: "0 12px", fontSize: 13 }} aria-pressed={paceMode === m} onClick={() => pickPace(m)}>
@@ -187,7 +236,7 @@ export default function Tracker() {
 
             <section className="ink-card">
               <div className="ink-card__head">
-                <span>Log a drink</span>
+                <span>{forYesterday ? "Log for yesterday" : "Log a drink"}</span>
                 <span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)", textTransform: "uppercase" }}>
                   {other ? "other" : `${bottle.name} · ${fmt(bottle.oz, unit)}`}
                 </span>
@@ -234,33 +283,52 @@ export default function Tracker() {
                         {FRACTIONS.map((f) => <span key={f}>{fractionLabel(f)}</span>)}
                       </div>
                     </div>
-                    <button type="button" className="ink-btn ink-btn--primary ink-btn--lg" style={{ height: 56, fontSize: 18 }} onClick={() => log(fraction)}>
-                      Log {fmt(logOz, unit)}
-                      <span style={{ font: "500 13px/1 var(--font-mono)", opacity: 0.75, marginLeft: 8, textTransform: "uppercase" }}>{fractionLabel(fraction)} {bottle.name}</span>
-                    </button>
-                    {canStart && (
-                      <button type="button" className="ink-btn ink-btn--ghost" style={{ height: 44 }} onClick={() => addEntry(makeStartEntry(new Date()))}>
+                    <div className="undo-anchor flex flex-col">
+                      <button type="button" className="ink-btn ink-btn--primary ink-btn--lg" style={{ height: 56, fontSize: 18 }} onClick={() => log(fraction)}>
+                        Log {fmt(logOz, unit)}
+                        <span style={{ font: "500 13px/1 var(--font-mono)", opacity: 0.75, marginLeft: 8, textTransform: "uppercase" }}>{fractionLabel(fraction)} {bottle.name}</span>
+                      </button>
+                      {undoBar("log")}
+                    </div>
+                    {canStart && !forYesterday && (
+                      // Wraps its hint under the label at large display sizes instead of widening the page.
+                      <button type="button" className="ink-btn ink-btn--ghost" style={{ height: "auto", minHeight: 44, padding: "6px 18px", whiteSpace: "normal", flexWrap: "wrap", rowGap: 4 }} onClick={() => addEntry(makeStartEntry(new Date()))}>
                         Started bottle
                         <span style={{ font: "500 12px/1 var(--font-mono)", color: "var(--ink-700)", marginLeft: 8 }}>times the first one</span>
                       </button>
                     )}
                   </>
                 )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex gap-1.5" role="group" aria-label="Log for">
+                    <button type="button" className="ink-chip" style={{ padding: "0 12px", fontSize: 13 }} aria-pressed={!forYesterday} onClick={() => setForYesterday(false)}>Today</button>
+                    <button type="button" className="ink-chip" style={{ padding: "0 12px", fontSize: 13 }} aria-pressed={forYesterday} onClick={() => setForYesterday(true)}>Yesterday</button>
+                  </div>
+                  {forYesterday && (
+                    <label className="flex items-center gap-2" style={{ fontSize: 14, color: "var(--ink-700)" }}>
+                      finished at
+                      <input type="time" className="ink-input mono" style={{ width: 132 }} value={yesterdayTime} onChange={(e) => setYesterdayTime(e.target.value)} aria-label="Time yesterday" />
+                    </label>
+                  )}
+                </div>
               </div>
             </section>
           </div>
 
           <div className="flex flex-col gap-4 lg:gap-6">
             <section className="ink-card lg:hidden">
-              <div className="ink-card__head">
+              <div className="ink-card__head undo-anchor">
                 <span>Coffee-free streak</span>
                 {openCoffee ? (
                   <button type="button" className="ink-btn coffee-btn" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
                 ) : (
                   <button type="button" className="ink-btn coffee-btn" onClick={logCoffee}>+ Coffee</button>
                 )}
+                {undoBar("coffee")}
               </div>
-              <div className="ink-card__body flex items-baseline justify-between" style={{ padding: "14px 24px" }}>
+              {/* Wraps: at large display sizes the badge drops under the streak instead of widening the page. */}
+              <div className="ink-card__body flex flex-wrap items-baseline justify-between" style={{ padding: "14px 24px", rowGap: 8, columnGap: 12 }}>
                 <span style={{ font: "600 26px/1 var(--font-mono)" }}>
                   {coffee.streak} <span style={{ font: "400 14px/1 var(--font-sans)", color: "var(--ink-700)" }}>{coffee.streak === 1 ? "day" : "days"}</span>
                 </span>
@@ -284,17 +352,39 @@ export default function Tracker() {
                 <ul className="ink-list" style={{ borderTop: 0 }}>
                   {[...today].reverse().map((e, i, arr) => {
                     const d = durations.get(e.id);
-                    const metaParts = [TIME_FMT.format(new Date(e.at)), d ? formatDuration(d.minutes) : null, d && d.ozPerHour !== null ? `${toUnit(d.ozPerHour, unit)} ${u}/h` : null];
+                    const time = TIME_FMT.format(new Date(e.at));
+                    // Tap the time to fix it ("I finished this at 2, not now"). Untimed backfill has no time to fix.
+                    const timePart = e.untimed ? time : (
+                      <button type="button" className="time-btn" aria-label={`Change time, ${time}`} onClick={() => setEditing({ id: e.id, value: timeValue(new Date(e.at)), error: null })}>{time}</button>
+                    );
+                    const metaParts = [timePart, d ? formatDuration(d.minutes) : null, d && d.ozPerHour !== null ? `${toUnit(d.ozPerHour, unit)} ${u}/h` : null];
+                    const edit = editing?.id === e.id ? editing : null;
+                    // Wraps: at large display sizes the right-hand group drops under the name instead of widening the page.
                     return (
-                      <li key={e.id} style={{ fontSize: 16, minHeight: 52, borderBottom: i === arr.length - 1 ? 0 : undefined }}>
-                        <span>
+                      <li key={e.id} className={e === refill ? "undo-anchor" : undefined} style={{ fontSize: 16, minHeight: 52, borderBottom: i === arr.length - 1 ? 0 : undefined, flexWrap: "wrap", rowGap: 6 }}>
+                        <span style={{ minWidth: 0 }}>
                           {isStart(e) ? "Started bottle" : <>{sourceName(bottles, e.bottleId)}{e.bottleId !== "other" && ` ${fractionLabel(e.fraction).toLowerCase()}`}</>}
-                          <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}><Meta parts={metaParts} /></span>
+                          {!edit && <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}><Meta parts={metaParts} /></span>}
                         </span>
-                        <span className="flex items-center gap-3">
+                        {edit && (
+                          <span className="flex w-full flex-col gap-2" style={{ order: 3 }}>
+                            <span className="flex flex-wrap items-center gap-2">
+                              <input type="time" className="ink-input mono" style={{ width: 132 }} value={edit.value} max={timeValue(now)} aria-label="Finished at"
+                                onChange={(ev) => setEditing({ ...edit, value: ev.target.value, error: null })} />
+                              <button type="button" className="ink-btn ink-btn--primary ink-btn--sm" onClick={() => saveTime(e)}>Save time</button>
+                              <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm" onClick={() => setEditing(null)}>Cancel</button>
+                            </span>
+                            {edit.error && <span role="alert" style={{ fontSize: 14, fontWeight: 600 }}>{edit.error}</span>}
+                          </span>
+                        )}
+                        <span className="ml-auto flex items-center gap-3">
+                          {e === refill && (
+                            <button type="button" className="ink-btn ink-btn--sm" aria-label={`Refill ${fmt(e.oz, unit)}`} onClick={() => logged(refillOf(e, new Date()), "refill")}>Refill</button>
+                          )}
                           {!isStart(e) && <span className="mono" style={{ fontSize: 15, whiteSpace: "nowrap" }}>{fmt(e.oz, unit)}</span>}
                           <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label={isStart(e) ? "Remove bottle start" : `Remove ${e.oz} oz entry`} onClick={() => removeEntry(e.id)}>{"✕"}</button>
                         </span>
+                        {e === refill && undoBar("refill")}
                       </li>
                     );
                   })}
@@ -317,9 +407,38 @@ export default function Tracker() {
   );
 }
 
+type UndoFrom = "log" | "refill" | "coffee";
+
+/**
+ * "Logged 36 oz · Undo", floating next to the control that logged (its .undo-anchor parent). Out of
+ * the page flow, so nothing moves when it comes or goes. Placed before paint: below the control when
+ * that stays inside its card and clear of the tab bar, otherwise above it, so it never sits on the Log
+ * button, the tab bar or the STAGING bar.
+ */
+function UndoBar({ message, onUndo }: { message: string; onUndo: () => void }) {
+  const place = (el: HTMLDivElement | null) => {
+    const anchor = el?.parentElement;
+    if (!el || !anchor) return;
+    const a = anchor.getBoundingClientRect();
+    const need = el.getBoundingClientRect().height + 8;
+    const tab = document.querySelector("nav.ink-tabbar")?.getBoundingClientRect();
+    const staging = document.querySelector(".staging-banner")?.getBoundingClientRect();
+    const card = anchor.closest(".ink-card")?.getBoundingClientRect(); // cards clip their content
+    const floor = Math.min(tab && tab.height > 0 ? tab.top : window.innerHeight, card?.bottom ?? Infinity);
+    const ceiling = Math.max(staging?.bottom ?? 0, card?.top ?? 0);
+    el.dataset.place = a.bottom + need <= floor || a.top - need < ceiling ? "below" : "above";
+  };
+  return (
+    <div ref={place} className="undo-bar" role="status">
+      <span>{message}</span>
+      <button type="button" className="undo-bar__btn" onClick={onUndo}>Undo</button>
+    </div>
+  );
+}
+
 /** "9:00 PM · 4h 20m · 8.3 oz/h": wraps between parts, never inside one. */
-function Meta({ parts }: { parts: (string | null)[] }) {
-  const shown = parts.filter((p): p is string => !!p);
+function Meta({ parts }: { parts: ReactNode[] }) {
+  const shown = parts.filter((p) => !!p);
   return (
     <>
       {shown.map((p, i) => (

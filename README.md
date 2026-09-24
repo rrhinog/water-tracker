@@ -14,6 +14,9 @@ What it does:
 
 - **Log a drink in one tap.** Pick your bottle, slide ¼ / ½ / ¾ / Full, Log. Or type a one-off amount;
   recent amounts come back as chips.
+- **Log faster.** "Logged 36 oz · Undo" for a few seconds after every drink or coffee; **Refill** repeats
+  your last drink in one tap; tap a drink's time to fix it ("I finished this at 2"); log a forgotten
+  bottle for **Yesterday** at the time you pick.
 - **Today against a daily floor** (100 oz by default), with **pace**: ahead or behind, next drink due, and a
   first-bottle checkpoint. Two pace modes: an even spread, or a curve learned from your own cleared days.
 - **Bottle timing.** Each finished bottle shows how long it took and ounces per hour; an optional
@@ -27,7 +30,8 @@ What it does:
 - **Display size.** Scale the whole app to 80, 90, 100, 110 or 125 %, per device (a phone and a desktop
   can differ). Buttons stay at least 44 px to the touch at every size, and pinch-to-zoom still works.
 - **Installable and offline-first.** Add it to your home screen over HTTPS; it opens with no signal, and
-  taps land locally and sync when the server is reachable.
+  taps land locally and sync, in order, when the server is reachable. A banner says what is waiting
+  ("2 drinks waiting to sync"), and another offers "New version — tap to reload" after an update.
 
 <img src="docs/screenshots/desktop-light.png" width="720" alt="Desktop layout: sidebar navigation, today's total, bottle log, and today's drinks with durations">
 

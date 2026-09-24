@@ -16,6 +16,9 @@ export function mergeWithServer<T extends Row>(server: readonly T[], local: read
   }
   const onServer = new Set(server.map((r) => r.id));
   const unsent = local.filter((r) => !onServer.has(r.id) && upserts.has(r.id));
+  // A change still queued (an edited time, a finished coffee) beats the server's older copy.
+  const localById = new Map(local.map((r) => [r.id, r]));
+  const kept = server.map((r) => (upserts.has(r.id) && localById.get(r.id)) || r);
   // A delete tapped offline should not flash back in while it waits to be sent.
-  return [...server.filter((r) => !deletes.has(r.id)), ...unsent].sort((a, b) => a.at.localeCompare(b.at));
+  return [...kept.filter((r) => !deletes.has(r.id)), ...unsent].sort((a, b) => a.at.localeCompare(b.at));
 }

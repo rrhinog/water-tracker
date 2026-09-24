@@ -4,6 +4,41 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
 a fix to existing behaviour bumps the last.
 
+## [1.8] — YYYY-MM-DD
+
+Log faster: fewer taps for the usual cases, and a way back from the wrong one.
+
+### Added
+- **Undo.** After logging a drink or a coffee, a bar shows "Logged 36 oz · Undo" (or "Logged a coffee ·
+  Undo") for 6 seconds, next to the button you tapped. Undo removes it through the normal delete, so it
+  works offline too. The bar floats beside the button (below it, or above when below would reach the tab
+  bar), so nothing on the page moves and it never sits on the Log button, the tab bar or the STAGING bar.
+- **Refill.** The latest drink in "Logged today" has a Refill button: the same bottle and amount again,
+  finished now. Works for a one-off Other amount too.
+- **Edit a time.** Tap a logged drink's time and pick the real one. Same entry, new time, sent as an
+  update; no future times, and it stays on its own day. Bottle durations follow the new time.
+- **Log for yesterday.** A Today / Yesterday switch under the Log button; Yesterday asks for a time
+  (9:00 PM to start with), the drink lands on yesterday in History, and the switch goes back to Today.
+- **Offline banner.** "2 drinks waiting to sync" (or "1 drink and 1 coffee…") while the server can't be
+  reached, "Can't reach the server" when nothing is waiting; it goes when everything has been sent. It
+  replaces the old "not synced" tag and shows on every page.
+- **Update banner.** "New version — tap to reload" when the server is running a different release than
+  the page was loaded from (the page's version against `/api/health`, checked on opening, on return to
+  the app and every 5 minutes). It reloads only when tapped.
+
+### Changed
+- Changes are always sent in the order they were made: a new change waits behind anything still queued,
+  and the queue is retried every 15 seconds while offline, when the network comes back and when the app
+  returns to the foreground (it used to retry only on the next launch). A send that hangs gives up
+  after 10 seconds.
+- A change still waiting to be sent (an edited time, a finished coffee) is no longer replaced by the
+  server's older copy when the app refreshes; a Settings save that failed offline is sent again before
+  the next refresh instead of being overwritten.
+- Banners appear and disappear only when no finger is on the screen, so the page never jumps under a tap.
+- At large display sizes the "Started bottle" button, the rows in "Logged today" and the coffee streak
+  line wrap instead of making the page scroll sideways (seen at 125 % on a 375 px phone).
+- `package.json` carries the app version 1.8.0.
+
 ## [1.7.1] — 2026-09-24
 
 ### Changed

@@ -61,3 +61,26 @@ export function entriesForDay(entries: readonly Entry[], day: Date): Entry[] {
 export function totalOz(entries: readonly Entry[]): number {
   return Math.round(entries.reduce((sum, e) => sum + e.oz, 0) * 10) / 10;
 }
+
+/**
+ * The most recent drink with a real time: what Refill repeats. Start markers (oz 0) and untimed
+ * backfill rows are skipped. Null when there is none.
+ */
+export function lastDrink(entries: readonly Entry[]): Entry | null {
+  let last: Entry | null = null;
+  for (const e of entries) {
+    if (e.untimed || e.oz <= 0) continue; // oz 0 = a "Started bottle" marker
+    if (!last || e.at >= last.at) last = e;
+  }
+  return last;
+}
+
+/** Refill: the same bottle, fraction and ounces again, as a new drink finished now. */
+export function refillOf(last: Entry, now: Date): Entry {
+  return { id: newId(now), at: now.toISOString(), bottleId: last.bottleId, fraction: last.fraction, oz: last.oz };
+}
+
+/** Oldest first, the order every list and duration reads. `at` is ISO UTC, so strings sort as times. */
+export function byTime<T extends { at: string }>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => a.at.localeCompare(b.at));
+}

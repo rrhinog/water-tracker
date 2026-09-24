@@ -4,15 +4,32 @@ A small, self-hosted daily water tracker. Phone + desktop web app (installable f
 Docker on your own machine, Postgres for data. Built one feature at a time as a learning project;
 the process is documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+<p>
+  <img src="docs/screenshots/today-light.png" width="240" alt="Today on a phone, light mode: 67 oz of a 100 oz floor, pace 22 oz behind, bottle picker and slider">
+  <img src="docs/screenshots/today-dark.png" width="240" alt="Today on a phone, dark mode">
+  <img src="docs/screenshots/coffee-dark.png" width="240" alt="Coffee-free streak and coffee calendar, dark mode">
+</p>
+
 What it does:
 
-- Log a bottle in one tap: pick your bottle, slide ¼ / ½ / ¾ / Full, Log. Or type a one-off amount.
-- Today's total against a daily floor (100 oz by default), with **pace**: on track / behind, next drink
-  due, and a first-bottle-by-10 AM checkpoint. Two pace modes: an even spread, or a curve from your own
-  cleared days.
-- Coffee log with a coffee-free streak (the target is zero).
-- History: streaks, last 7 / 30 days / 13 weeks, month calendar, breakdown by week / month / quarter.
-- Offline-first: taps land locally and sync when the server is reachable.
+- **Log a drink in one tap.** Pick your bottle, slide ¼ / ½ / ¾ / Full, Log. Or type a one-off amount;
+  recent amounts come back as chips.
+- **Today against a daily floor** (100 oz by default), with **pace**: ahead or behind, next drink due, and a
+  first-bottle checkpoint. Two pace modes: an even spread, or a curve learned from your own cleared days.
+- **Bottle timing.** Each finished bottle shows how long it took and ounces per hour; an optional
+  "Started bottle" tap times the first one of the day.
+- **Coffee, target zero.** A coffee-free streak, a brew timer from pour to finished, flavours, and a
+  coffee calendar.
+- **History.** Streaks, 7 / 30 day and 13 week charts, a month calendar, week / month / quarter tables,
+  first-drink-vs-floor and bottle-pace breakdowns.
+- **Make it yours.** Bottles, daily floor, oz or mL, pace window, coffee flavours and a colour theme,
+  saved on your server.
+- **Installable and offline-first.** Add it to your home screen over HTTPS; it opens with no signal, and
+  taps land locally and sync when the server is reachable.
+
+<img src="docs/screenshots/desktop-light.png" width="720" alt="Desktop layout: sidebar navigation, today's total, bottle log, and today's drinks with durations">
+
+Screenshots use generated demo data. Release notes: [CHANGELOG.md](CHANGELOG.md).
 
 ## Run it
 

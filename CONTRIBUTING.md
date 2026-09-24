@@ -19,8 +19,16 @@ Every change follows the same path, whether it's mine or yours:
 
 ## Ground rules
 
-- **No data in the repo.** Entries live in Postgres. Never commit a seed, export, or `.env`.
-- **Additive schema changes** go in a new `drizzle/NNNN_*.sql` file; never edit an applied one.
+- **No data in the repo.** Entries live in Postgres. Never commit an export or `.env`. Demo data is
+  generated in code (`src/lib/demo.ts`) and only ever written to a `*_staging` / `*_demo` database.
+- **Schema changes** go in a new `drizzle/NNNN_*.sql` file (next number, plain SQL). `scripts/migrate.ts`
+  applies it: `deploy.ps1` runs it against the target's database before the new container starts, and
+  records the file name in `schema_migrations`. **Never edit or rename a file once it is applied**
+  anywhere; a fix is a new file. Don't add `BEGIN`/`COMMIT`: the runner wraps each file in a transaction.
+- **Keep migrations additive.** The old container is still serving while the migration runs, so a
+  change must work with both the old and new code (add a column now, drop the old one in a later release).
+- **Staging never uses live's database.** Try a branch on staging against demo data; `bun run dev` should
+  point at staging too.
 - **Offline first.** Anything that logs a drink must work with the server unreachable and sync later.
 - Everyday choices (bottles, daily floor, units, pace window, flavours, colour) live in the app's Settings.
   The defaults a fresh install starts with are `DEFAULT_SETTINGS` in `src/lib/settings.ts`.

@@ -4,6 +4,29 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
 a fix to existing behaviour bumps the last.
 
+## [1.6] — 2026-09-24
+
+Safe to change: nothing on screen changes; building and trying new features no longer puts real data at risk.
+
+### Added
+- Staging has its own database with generated demo data (about 75 days of drinks and coffees, from a
+  fixed seed). `scripts/seed-demo.ts` refuses any database whose name does not end in `_staging` or `_demo`.
+- Migration runner: `scripts/migrate.ts` applies the `drizzle/*.sql` files a database has not applied
+  yet, each in a transaction, and records them in `schema_migrations`. `--baseline` records existing
+  files without running them.
+- `GET /api/health` answers `{ ok, version, db }` after a database round-trip, or `503` when the
+  database is unreachable. The version includes the deployed commit.
+- Browser errors are reported to the server log (`[client-error]` lines), rate-limited, with no
+  personal data beyond the message, stack, path and browser.
+
+### Changed
+- Live and staging read their database URLs from `.env` (`LIVE_DATABASE_URL`, `STAGING_DATABASE_URL`,
+  plus `…_FROM_HOST` variants for scripts on the host); the containers no longer receive the rest of `.env`.
+- `deploy.ps1` migrates the target's database before recreating the container, stops if that fails,
+  and probes `/api/health` instead of `/`, printing the version.
+- Setup in the README uses the migration runner instead of a `psql` loop.
+- `package.json` carries the app version (1.6.0).
+
 ## [1.5] — 2026-09-23
 
 ### Added
@@ -80,6 +103,7 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
+[1.6]: https://github.com/rrhinog/water-tracker/releases/tag/v1.6
 [1.5]: https://github.com/rrhinog/water-tracker/releases/tag/v1.5
 [1.4.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.4.1
 [1.4]: https://github.com/rrhinog/water-tracker/releases/tag/v1.4

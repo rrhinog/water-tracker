@@ -1,9 +1,10 @@
 # Deploy the current working tree to the live or staging container.
 #
-#   .\scripts\deploy.ps1 staging   # test a feature branch on your phone
+#   .\scripts\deploy.ps1 staging   # test a feature branch on your phone (staging database, demo data)
 #   .\scripts\deploy.ps1 live      # ship main
 #
-# Steps: build image -> recreate container -> probe the URL. Exits non-zero on any failure.
+# Steps: build image -> migrate the TARGET's database -> recreate container -> probe /api/health.
+# Exits non-zero on any failure; a failed migration stops the deploy before the container changes.
 
 param(
     [Parameter(Mandatory = $true)]
@@ -25,26 +26,40 @@ if ($Target -eq "live" -and $branch -ne "main") {
 }
 
 Write-Host "==> Building $Target from $branch @ $sha"
+$env:GIT_SHA = $sha   # docker-compose.yml passes it to the image as a build arg
 docker compose build $Target
 if ($LASTEXITCODE -ne 0) { Write-Error "Build failed"; exit 1 }
+
+# Host-side: bun loads .env and uses LIVE_/STAGING_DATABASE_URL_FROM_HOST for this target.
+Write-Host "==> Migrating the $Target database"
+bun scripts/migrate.ts $Target
+if ($LASTEXITCODE -ne 0) { Write-Error "Migrations failed; $Target was NOT redeployed (the old container is still running)"; exit 1 }
 
 Write-Host "==> Recreating container"
 docker compose up -d --force-recreate $Target
 if ($LASTEXITCODE -ne 0) { Write-Error "Container start failed"; exit 1 }
 
-Write-Host "==> Probing http://127.0.0.1:$port"
-$ok = $false
+$health = "http://127.0.0.1:$port/api/health"
+Write-Host "==> Probing $health"
+$version = $null
+$last = "no answer"
 for ($i = 0; $i -lt 15; $i++) {
     Start-Sleep -Seconds 2
     try {
-        $r = Invoke-WebRequest -Uri "http://127.0.0.1:$port" -UseBasicParsing -TimeoutSec 3
-        if ($r.StatusCode -eq 200) { $ok = $true; break }
-    } catch { }
+        $r = Invoke-RestMethod -Uri $health -TimeoutSec 3
+        if ($r.ok -eq $true) { $version = $r.version; break }
+        $last = "ok=false"
+    } catch {
+        $last = $_.Exception.Message
+    }
 }
 
-if (-not $ok) {
-    Write-Error "$Target did not answer on port $port after 30s. Check: docker logs water-tracker$(if ($Target -eq 'staging') { '-staging' })"
+if (-not $version) {
+    Write-Error "$Target is not healthy on port $port after 30s ($last). Check: docker logs water-tracker$(if ($Target -eq 'staging') { '-staging' })"
     exit 1
+}
+if (-not $version.EndsWith("+$sha")) {
+    Write-Warning "Health reports version $version, expected a build of $sha"
 }
 
 $phone = ""
@@ -55,4 +70,4 @@ if (Test-Path ".env") {
     $ts = Get-Content ".env" | Where-Object { $_ -match "^TS_HTTPS_HOST=(.+)$" } | Select-Object -First 1
     if ($ts -match "^TS_HTTPS_HOST=(.+)$") { $phone = "  |  phone: https://$($Matches[1]):$(if ($Target -eq 'live') { 8445 } else { 8446 })" }
 }
-Write-Host "==> $Target is up: http://127.0.0.1:$port$phone  ($branch @ $sha)"
+Write-Host "==> $Target is up: http://127.0.0.1:$port$phone  (v$version, $branch @ $sha)"

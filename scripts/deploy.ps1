@@ -51,5 +51,8 @@ $phone = ""
 if (Test-Path ".env") {
     $line = Get-Content ".env" | Where-Object { $_ -match "^PHONE_HOST=(.+)$" } | Select-Object -First 1
     if ($line -match "^PHONE_HOST=(.+)$") { $phone = "  |  phone: http://$($Matches[1]):$port" }
+    # Optional HTTPS name from Tailscale Serve (live -> :8445, staging -> :8446); see README "HTTPS".
+    $ts = Get-Content ".env" | Where-Object { $_ -match "^TS_HTTPS_HOST=(.+)$" } | Select-Object -First 1
+    if ($ts -match "^TS_HTTPS_HOST=(.+)$") { $phone = "  |  phone: https://$($Matches[1]):$(if ($Target -eq 'live') { 8445 } else { 8446 })" }
 }
 Write-Host "==> $Target is up: http://127.0.0.1:$port$phone  ($branch @ $sha)"

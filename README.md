@@ -25,11 +25,12 @@ bun install
 cp .env.example .env            # fill in POSTGRES_PASSWORD and DATABASE_URL
 ```
 
-Create the database and tables (the schema is hand-written SQL, applied once):
+Create the database and tables (the schema is hand-written SQL in `drizzle/`, applied in order;
+each file runs once):
 
 ```bash
 psql "$DATABASE_URL_WITHOUT_DB" -c "CREATE DATABASE water_tracker;"
-psql "$DATABASE_URL" -f drizzle/0000_init.sql
+for f in drizzle/*.sql; do psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"; done
 ```
 
 Develop:
@@ -62,6 +63,21 @@ services:
 
 and set `PHONE_HOST=YOUR.ADDRESS` in `.env` so the deploy script prints the phone URL. Then open it in
 Safari or Chrome and Add to Home Screen.
+
+### HTTPS (installable app, opens offline)
+
+Browsers only run the service worker that lets the app open with no signal on a secure origin. With
+[Tailscale](https://tailscale.com) (HTTPS certificates enabled for your tailnet), serve both containers
+privately on your tailnet:
+
+```bash
+tailscale serve --bg --https=8445 http://127.0.0.1:4210   # live
+tailscale serve --bg --https=8446 http://127.0.0.1:4211   # staging
+```
+
+Set `TS_HTTPS_HOST=yourpc.your-tailnet.ts.net` in `.env` and the deploy script prints the HTTPS URL.
+Add to Home Screen from that URL. A new origin starts with an empty local cache; your data is on
+the server, so nothing is lost, but open the old app once first so anything it logged offline is sent.
 
 ## Make it yours
 

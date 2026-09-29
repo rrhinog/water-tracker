@@ -17,7 +17,7 @@ function same(a: SettingsT, b: SettingsT): boolean {
 }
 
 export default function Settings() {
-  const { settings, updateSettings, sync, settingsSave, settingsSavedAt } = useSynced();
+  const { settings, updateSettings, sync, offline, settingsSave, settingsSavedAt } = useSynced();
   // Edits build a draft; nothing is applied until Save.
   const [draft, setDraft] = useState<SettingsT>(settings);
   const [baseline, setBaseline] = useState<SettingsT>(settings);
@@ -87,7 +87,7 @@ export default function Settings() {
   const previewHex = isTheme(draft.accent) ? THEMES[draft.accent].light : draft.accent;
 
   return (
-    <Shell syncNote={sync === "offline" ? <span className="ink-tag">not synced</span> : null}>
+    <Shell offline={offline}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 pb-24 lg:max-w-3xl lg:gap-6 lg:p-10 lg:pb-28">
         <header className="flex flex-col gap-1">
           <span className="eyebrow">Water</span>

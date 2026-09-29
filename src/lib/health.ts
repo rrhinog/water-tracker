@@ -28,3 +28,11 @@ export async function checkHealth(ping: () => Promise<unknown>, version: string,
     clearTimeout(timer);
   }
 }
+
+/**
+ * Another release is serving: the version the page was rendered with differs from what /api/health
+ * reports now. Unknown on either side (offline, an old server) is never "new".
+ */
+export function isNewRelease(loaded: string | null | undefined, served: string | null | undefined): boolean {
+  return !!loaded && !!served && loaded !== served;
+}

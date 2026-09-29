@@ -31,3 +31,11 @@ describe("mergeWithServer", () => {
     expect(mergeWithServer([row("late", 12), row("early", 8)], [], [], "entry").map((r) => r.id)).toEqual(["early", "late"]);
   });
 });
+
+describe("mergeWithServer with queued edits", () => {
+  it("a queued change to a row the server has (an edited time) beats the server's older copy", () => {
+    const edited = { ...row("a", 9), at: "2026-09-23T06:00:00.000Z" };
+    const merged = mergeWithServer([row("a", 9), row("b", 10)], [edited, row("b", 10)], [{ kind: "upsert-entry", entry: edited }], "entry");
+    expect(merged).toEqual([edited, row("b", 10)]);
+  });
+});

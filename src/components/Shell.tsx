@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import Banners from "@/components/Banners";
 
 const TABS = [
   { href: "/", label: "Today", icon: <path d="M12 3c-4 5-7 8.5-7 12a7 7 0 0 0 14 0c0-3.5-3-7-7-12z" /> },
@@ -21,9 +22,10 @@ const TABS = [
 
 /**
  * Page frame in Ink Kit terms. Phone: content over a bottom tab bar. Desktop (lg+): a
- * sidebar with the nav and an optional extra block (the coffee streak on Today).
+ * sidebar with the nav and an optional extra block (the coffee streak on Today). Banners (offline,
+ * new version) sit at the top of the content column on both.
  */
-export default function Shell({ children, aside, syncNote }: { children: ReactNode; aside?: ReactNode; syncNote?: ReactNode }) {
+export default function Shell({ children, aside, offline }: { children: ReactNode; aside?: ReactNode; offline?: string | null }) {
   const path = usePathname();
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
@@ -44,10 +46,10 @@ export default function Shell({ children, aside, syncNote }: { children: ReactNo
           ))}
         </ul>
         {aside && <div style={{ marginTop: "auto", padding: "16px 24px", borderTop: "2px solid var(--ink-900)" }}>{aside}</div>}
-        {syncNote && <div style={{ padding: "12px 24px", borderTop: "2px solid var(--ink-900)" }}>{syncNote}</div>}
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <Banners offline={offline} />
         <div className="flex-1 pb-[76px] lg:pb-0">{children}</div>
         <nav className="ink-tabbar fixed inset-x-0 bottom-0 lg:hidden" aria-label="Primary">
           {TABS.map((t) => (

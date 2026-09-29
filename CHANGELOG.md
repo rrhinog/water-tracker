@@ -4,7 +4,7 @@ All notable changes to this project. The format follows [Keep a Changelog](https
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
 a fix to existing behaviour bumps the last.
 
-## [1.8] — YYYY-MM-DD
+## [1.8] — 2026-09-29
 
 Log faster: fewer taps for the usual cases, and a way back from the wrong one.
 
@@ -34,6 +34,9 @@ Log faster: fewer taps for the usual cases, and a way back from the wrong one.
 - A change still waiting to be sent (an edited time, a finished coffee) is no longer replaced by the
   server's older copy when the app refreshes; a Settings save that failed offline is sent again before
   the next refresh instead of being overwritten.
+- Opening "change time" on a drink brings the editor to the middle of the screen, so Save is never left
+  under the tab bar. While the undo bar sits below the Log button, the Today / Yesterday row under it is
+  hidden (its space kept), so its buttons don't show around the bar's edges.
 - Banners appear and disappear only when no finger is on the screen, so the page never jumps under a tap.
 - At large display sizes the "Started bottle" button, the rows in "Logged today" and the coffee streak
   line wrap instead of making the page scroll sideways (seen at 125 % on a 375 px phone).
@@ -168,6 +171,7 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
+[1.8]: https://github.com/rrhinog/water-tracker/releases/tag/v1.8
 [1.7.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.7.1
 [1.7]: https://github.com/rrhinog/water-tracker/releases/tag/v1.7
 [1.6]: https://github.com/rrhinog/water-tracker/releases/tag/v1.6

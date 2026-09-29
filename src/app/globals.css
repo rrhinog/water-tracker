@@ -187,6 +187,9 @@ input[type="range"].ink-range::-moz-range-track { height: 2px; background: var(-
 .undo-anchor { position: relative; }
 .undo-bar { position: absolute; left: 0; right: 0; top: calc(100% + 8px); }
 .undo-bar[data-place="above"] { top: auto; bottom: calc(100% + 8px); }
+/* While the undo bar sits below the Log button it covers the Today/Yesterday row; hide that row so its
+   chips don't poke out from under the bar. visibility keeps its space, so nothing moves. */
+.undo-anchor:has(> .undo-bar[data-place="below"]) ~ .log-for-row { visibility: hidden; }
 .ink-list .undo-bar, .ink-card__head .undo-bar { left: 16px; right: 16px; }
 .undo-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--tap); padding: 0 4px 0 16px; border-radius: var(--radius-pill); background: var(--ink-black); color: var(--ink-white); font: 500 15px/1.2 var(--font-sans); }
 .undo-bar__btn { min-height: var(--tap); min-width: var(--tap); padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--ink-white); font: 700 15px/1 var(--font-sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }

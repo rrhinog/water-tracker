@@ -49,6 +49,13 @@ export default function Tracker() {
   }, [undo]);
   // The row whose time is being changed, with the picker's value.
   const [editing, setEditing] = useState<{ id: string; value: string; error: string | null } | null>(null);
+  // Opening "change time" on a drink near the bottom can leave Save under the tab bar; bring the
+  // editor to the middle of the screen (no animation: Ink Kit has no motion). Found by the hub's audit.
+  const editingId = editing?.id ?? null;
+  useEffect(() => {
+    if (!editingId) return;
+    document.querySelector('input[aria-label="Finished at"]')?.closest("li")?.scrollIntoView?.({ block: "center" });
+  }, [editingId]);
 
   const bottle = (pickedId && bottleById(bottles, pickedId)) || bottles[0];
   const paceMode: PaceMode = paceOverride ?? settings.defaultPaceMode;
@@ -300,7 +307,7 @@ export default function Tracker() {
                   </>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="log-for-row flex flex-wrap items-center gap-2">
                   <div className="flex gap-1.5" role="group" aria-label="Log for">
                     <button type="button" className="ink-chip" style={{ padding: "0 12px", fontSize: 13 }} aria-pressed={!forYesterday} onClick={() => setForYesterday(false)}>Today</button>
                     <button type="button" className="ink-chip" style={{ padding: "0 12px", fontSize: 13 }} aria-pressed={forYesterday} onClick={() => setForYesterday(true)}>Yesterday</button>

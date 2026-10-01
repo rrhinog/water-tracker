@@ -40,6 +40,35 @@ export function dumpCommand(c: PgConnection, snapshot: string, container?: strin
     : ["pg_dump", "-h", c.host, "-p", c.port, ...args];
 }
 
+/**
+ * pg_restore that replaces the database's contents with a dump, in one transaction: if anything
+ * fails, nothing changed. With a container the dump goes in on stdin; otherwise it is the last argument.
+ */
+export function restoreCommand(c: PgConnection, container?: string, file?: string): string[] {
+  const args = ["--clean", "--if-exists", "--no-owner", "--no-acl", "--single-transaction", "--exit-on-error", "--no-password", "-U", c.user, "-d", c.database];
+  if (container) return ["docker", "exec", "-i", "-e", "PGPASSWORD", container, "pg_restore", "-h", "127.0.0.1", "-p", "5432", ...args];
+  if (!file) throw new Error("restoreCommand: a file is needed without a container");
+  return ["pg_restore", "-h", c.host, "-p", c.port, ...args, file];
+}
+
+/** The database a dump was taken from, from pg_restore --list's header ("" when it doesn't say). */
+export function dumpDatabase(listing: string): string {
+  return /^;\s+dbname:\s*(\S+)\s*$/im.exec(listing)?.[1] ?? "";
+}
+
+/**
+ * Why a restore must not go ahead, or null. Checked before anything is touched: the caller typed
+ * the database's name, the dump is of that same database (never staging's demo data into live, or
+ * live's real data into staging), and the app is stopped so nothing writes during the restore.
+ */
+export function restoreRefusal(o: { database: string; confirm?: string; fromDatabase: string; container: string; containerRunning: boolean }): string | null {
+  if (o.confirm !== `--yes-replace-${o.database}`) return `this replaces everything in ${o.database}; to go ahead, add --yes-replace-${o.database}`;
+  if (!o.fromDatabase) return "the dump doesn't say which database it came from";
+  if (o.fromDatabase !== o.database) return `the dump is of ${o.fromDatabase}, not ${o.database}`;
+  if (o.containerRunning) return `${o.container} is running; stop it first so nothing writes during the restore (docker stop ${o.container})`;
+  return null;
+}
+
 /** pg_restore --list prints one "TABLE DATA" line per table whose rows are in the file. */
 export function tablesInDump(listing: string): string[] {
   return listing

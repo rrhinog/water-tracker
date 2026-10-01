@@ -1,4 +1,8 @@
-# Runs on every pull request and on main: the same checks as the feature loop's "build + test" step.
+# Runs on every pull request and on main. Three jobs, each its own status on the PR:
+#   check    lint, typecheck, tests and build (the feature loop's "build + test" step)
+#   secrets  gitleaks over every commit, so a password can't slip into this public history
+#   audit    known vulnerabilities in dependencies, high or critical
+# deploy.ps1 refuses to put a version live unless these passed on its commit.
 # GitHub-hosted runner on purpose: this repo is public, and a self-hosted runner would let a
 # fork's pull request run code on the maintainer's machine.
 name: CI
@@ -36,3 +40,37 @@ jobs:
         run: bun run test
       - name: Build
         run: bun run build
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # The gitleaks tool (MIT), pinned by version and checksum. Not the gitleaks GitHub Action:
+      # since v2 it ships under a commercial licence.
+      GITLEAKS_VERSION: 8.30.1
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # every commit: a secret added and then deleted is still in the history
+      - name: Install gitleaks
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tgz" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan every commit
+        # Settings and known false alarms: .gitleaks.toml. Findings print with the secret redacted.
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --no-banner --verbose .'
+
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.8
+      - name: Audit dependencies
+        # Reads bun.lock against the advisory database; fails on high or critical. A new advisory
+        # fails the next PR, and Dependabot (.github/dependabot.yml) proposes the update.
+        run: bun audit --audit-level=high

@@ -1,0 +1,10 @@
+# gitleaks settings (CI's "secrets" job, or locally: gitleaks git --redact .)
+# The built-in rules, plus the known false alarms below. Keep each one narrow and say why.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Browser storage key names such as PENDING_KEY = \"water.pending.v1\" are labels, not secrets"
+regexTarget = "match"
+regexes = ['''_KEY = "water\.[a-z]+\.v\d+"''']

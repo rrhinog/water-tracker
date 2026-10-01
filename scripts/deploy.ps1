@@ -2,7 +2,7 @@
 #
 #   .\scripts\deploy.ps1 staging              # this checkout's last commit (e.g. a feature branch)
 #   .\scripts\deploy.ps1 staging feat/x       # any branch, tag or commit (or sha-<commit>), without checking it out
-#   .\scripts\deploy.ps1 live v1.9.0          # a release tag on main
+#   .\scripts\deploy.ps1 live v1.9.0          # a release tag on main whose CI passed
 #   .\scripts\deploy.ps1 live v1.8            # roll back: the kept v1.8 image starts again, no rebuild
 #   .\scripts\deploy.ps1 live v1.9.0 -DryRun  # check everything and say what would happen; change nothing
 #   .\scripts\deploy.ps1 staging -Backup      # staging, backing up its database first as live always does
@@ -17,7 +17,9 @@
 # so a rollback reuses one in seconds. Migrations only add (CONTRIBUTING.md), so an older version
 # still runs on a newer database.
 #
-# Exits non-zero on any failure. A failed build or migration stops before the container changes.
+# Live only runs a commit whose CI passed on GitHub (scripts/ci-status.ts, with the GitHub CLI
+# signed in). Exits non-zero on any failure. A failed check, build, backup or
+# migration stops before the container changes.
 # Works from the main checkout or any git worktree of it; this machine's .env and
 # docker-compose.override.yml are read from the main checkout.
 
@@ -90,6 +92,8 @@ try {
     if ($Target -eq "live") {
         git merge-base --is-ancestor $full origin/main
         if ($LASTEXITCODE -ne 0) { Fail "$Ref ($sha) is not on main. Live only runs released commits." }
+        bun scripts/ci-status.ts $full
+        if ($LASTEXITCODE -ne 0) { Fail "Live only runs a commit whose CI passed. Fix it on a branch, merge, tag, and deploy that tag." }
     }
     $tag = @(git tag --points-at $full | Where-Object { $_ -match $versionTag }) | Select-Object -First 1
     $label = if ($Target -eq "live") { $Ref } elseif ($tag) { $tag } else { "sha-$sha" }

@@ -8,7 +8,7 @@
 #   .\scripts\deploy.ps1 staging -Backup      # staging, backing up its database first as live always does
 #
 # Steps: image -> back up the database (live) -> migrate the TARGET's database -> point the container
-# at the image -> probe /api/health. The backup (scripts/backup.ts, into BACKUP_DIR) is the last resort
+# at the image -> probe /api/health -> load Today, History and Settings. The backup (scripts/backup.ts, into BACKUP_DIR) is the last resort
 # if a rollback isn't enough; scripts/restore-check.ts proves a backup restores.
 #
 # The image is built from the commit (git archive), never from the working folder, so uncommitted
@@ -169,6 +169,16 @@ try {
     $back = if ($was) { "Roll back: .\scripts\deploy.ps1 $Target $was" } else { "Check: docker logs $container" }
     if (-not $version) { Fail "$Target is not healthy on port $port after 30s ($last). $back" }
     if (-not $version.EndsWith("+$sha")) { Fail "$Target answers $version, not a build of $sha. $back" }
+
+    # The main screens, not just the health check: each must load, and come from this release where
+    # the page says (<html data-version>, from v1.8 on; older pages only need to load).
+    foreach ($p in "/", "/history", "/settings") {
+        try { $page = Invoke-WebRequest -Uri "http://127.0.0.1:$port$p" -TimeoutSec 10 }
+        catch { Fail "$p did not load after the deploy ($($_.Exception.Message)). $back" }
+        $m = [regex]::Match($page.Content, 'data-version="([^"]+)"')
+        if ($m.Success -and $m.Groups[1].Value -ne $version) { Fail "$p loaded, but from $($m.Groups[1].Value), not $version. $back" }
+    }
+    Write-Host "==> Today, History and Settings load ($version)"
 
     Remove-OldImages '^v\d'
     Remove-OldImages '^sha-'

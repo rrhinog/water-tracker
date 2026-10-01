@@ -5,8 +5,11 @@
 #   .\scripts\deploy.ps1 live v1.9.0          # a release tag on main
 #   .\scripts\deploy.ps1 live v1.8            # roll back: the kept v1.8 image starts again, no rebuild
 #   .\scripts\deploy.ps1 live v1.9.0 -DryRun  # check everything and say what would happen; change nothing
+#   .\scripts\deploy.ps1 staging -Backup      # staging, backing up its database first as live always does
 #
-# Steps: image -> migrate the TARGET's database -> point the container at the image -> probe /api/health.
+# Steps: image -> back up the database (live) -> migrate the TARGET's database -> point the container
+# at the image -> probe /api/health. The backup (scripts/backup.ts, into BACKUP_DIR) is the last resort
+# if a rollback isn't enough; scripts/restore-check.ts proves a backup restores.
 #
 # The image is built from the commit (git archive), never from the working folder, so uncommitted
 # edits and local files such as .env can't reach it. It is named water-tracker:<tag> (or
@@ -23,7 +26,8 @@ param(
     [ValidateSet("live", "staging")]
     [string]$Target,
     [string]$Ref,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$Backup
 )
 
 $ErrorActionPreference = "Stop"
@@ -97,10 +101,15 @@ try {
     if ($LASTEXITCODE -eq 0) { $was = Get-ImageLabel $running "org.opencontainers.image.version" }
     $wasText = if ($was) { $was } else { "an unversioned image (built before versioned deploys)" }
 
+    $backUp = $Target -eq "live" -or $Backup
+    if ($backUp -and -not $env:BACKUP_DIR -and -not (Select-String -Path $envFile -Pattern '^BACKUP_DIR=\S' -Quiet)) {
+        Fail "Set BACKUP_DIR in .env first (see .env.example): a $Target deploy backs up the database before it changes it."
+    }
+
     $reuse = (Get-ImageLabel $image "org.opencontainers.image.revision") -eq $full
     Write-Host "==> $Target : $Ref ($sha) as $image. Running now: $wasText"
     if ($DryRun) {
-        Write-Host "    Dry run. Would $(if ($reuse) { 'reuse the kept image' } else { 'build the image from the commit' }), migrate the $Target database, recreate $container and probe /api/health."
+        Write-Host "    Dry run. Would $(if ($reuse) { 'reuse the kept image' } else { 'build the image from the commit' }),$(if ($backUp) { ' back up and' }) migrate the $Target database, recreate $container and probe /api/health."
         exit 0
     }
 
@@ -122,7 +131,12 @@ try {
         if ($LASTEXITCODE -ne 0) { Fail "Build failed; $Target was NOT changed" }
     }
 
-    # --- Database: apply that version's migrations (an older version applies none) ---
+    # --- Database: back it up, then apply that version's migrations (an older version applies none) ---
+    if ($backUp) {
+        Write-Host "==> Backing up the $Target database"
+        bun --env-file="$envFile" scripts/backup.ts $Target $label
+        if ($LASTEXITCODE -ne 0) { Fail "Backup failed; $Target was NOT changed" }
+    }
     # Host-side: bun loads .env and uses LIVE_/STAGING_DATABASE_URL_FROM_HOST for this target.
     Write-Host "==> Migrating the $Target database"
     bun --env-file="$envFile" scripts/migrate.ts $Target --dir (Join-Path $tmp "drizzle")

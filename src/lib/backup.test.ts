@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { backupFileName, compareCounts, dumpCommand, parseCounts, pgConnection, tablesInDump } from "./backup";
+import { backupFileName, compareCounts, dumpCommand, dumpDatabase, parseCounts, pgConnection, restoreCommand, restoreRefusal, tablesInDump } from "./backup";
 
 const url = "postgresql://water_tracker_app:p%40ss%2Fword@127.0.0.1:5432/water_tracker";
 
@@ -50,6 +50,37 @@ describe("tablesInDump", () => {
       "3370; 0 16410 TABLE DATA public settings water_tracker_app",
     ].join("\r\n");
     expect(tablesInDump(listing)).toEqual(["coffee_entries", "settings", "water_entries"]);
+  });
+});
+
+describe("restore", () => {
+  const c = pgConnection(url);
+  it("replaces everything in one transaction, as the app's own user, password never on the command line", () => {
+    const cmd = restoreCommand(c, "postgres");
+    for (const flag of ["--clean", "--if-exists", "--single-transaction", "--exit-on-error", "--no-owner"]) expect(cmd).toContain(flag);
+    expect(cmd.slice(cmd.indexOf("-U"), cmd.indexOf("-U") + 4)).toEqual(["-U", "water_tracker_app", "-d", "water_tracker"]);
+    expect(cmd.join(" ")).not.toContain("p@ss/word");
+    expect(restoreCommand(c, undefined, "b.dump").at(-1)).toBe("b.dump");
+    expect(() => restoreCommand(c)).toThrow();
+  });
+  it("reads which database a dump came from", () => {
+    expect(dumpDatabase(";\n; Archive created at 2026-10-01 22:10:50 UTC\n;     dbname: water_tracker_staging\n;     TOC Entries: 18\n")).toBe("water_tracker_staging");
+    expect(dumpDatabase("; nothing here")).toBe("");
+  });
+  const ok = { database: "water_tracker", confirm: "--yes-replace-water_tracker", fromDatabase: "water_tracker", container: "water-tracker", containerRunning: false };
+  it("goes ahead only when every guard holds", () => {
+    expect(restoreRefusal(ok)).toBeNull();
+  });
+  it("needs the database's name typed out", () => {
+    expect(restoreRefusal({ ...ok, confirm: undefined })).toMatch(/add --yes-replace-water_tracker/);
+    expect(restoreRefusal({ ...ok, confirm: "--yes-replace-water_tracker_staging" })).toMatch(/add --yes-replace-water_tracker$/);
+  });
+  it("never puts one database's dump into another", () => {
+    expect(restoreRefusal({ ...ok, fromDatabase: "water_tracker_staging" })).toBe("the dump is of water_tracker_staging, not water_tracker");
+    expect(restoreRefusal({ ...ok, fromDatabase: "" })).toMatch(/doesn't say/);
+  });
+  it("waits until the app is stopped", () => {
+    expect(restoreRefusal({ ...ok, containerRunning: true })).toMatch(/docker stop water-tracker\)$/);
   });
 });
 

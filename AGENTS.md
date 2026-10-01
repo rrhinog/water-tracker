@@ -22,6 +22,7 @@ message and pull request is published.
 | Run locally (against staging's database) | `bun run dev` |
 | What CI runs | `bun run lint` · `bunx next typegen && bunx tsc --noEmit` · `bun run test` · `bun run build` |
 | Try a branch on staging | `.\scripts\deploy.ps1 staging` (PowerShell 7, from the branch's worktree) |
+| Main-path browser test (staging only) | `bun run e2e` |
 | Release, deploy, roll back, restore | [RELEASING.md](RELEASING.md) · [RUNBOOK.md](RUNBOOK.md) |
 
 ## Rules
@@ -50,6 +51,7 @@ message and pull request is published.
 ## Where things are
 
 - `src/app` pages and API routes · `src/components` UI · `src/lib` logic and its tests · `src/db` schema
+- `e2e/` the main-path browser test (`bun run e2e`; refuses any app without the STAGING bar)
 - `drizzle/` SQL migrations, applied by `scripts/migrate.ts`
 - `scripts/` `deploy.ps1`, `migrate.ts`, `seed-demo.ts`, `backup.ts`, `restore-check.ts`, `restore.ts`,
   `ci-status.ts`, `release-notes.sh`

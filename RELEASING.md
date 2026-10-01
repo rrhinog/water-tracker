@@ -32,7 +32,8 @@ vulnerability). All three must be green to merge.
 - [ ] From the branch's worktree: `.\scripts\deploy.ps1 staging`. It deploys the branch's **last commit**;
       uncommitted edits are not included. Staging has its own database of demo data, never live's.
 - [ ] Try it on a phone, and write what you did and saw in the pull request.
-- [ ] Go through the main path in a browser: log, undo, refill, a changed time, offline and back.
+- [ ] Run the main-path browser test against staging: `bun run e2e` (log, undo, refill, a changed time,
+      yesterday, offline and back, the update banner, no sideways scroll; it cleans up after itself).
 
 ## 5. Release
 

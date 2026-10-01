@@ -39,7 +39,12 @@ Screenshots use generated demo data. Release notes: [CHANGELOG.md](CHANGELOG.md)
 
 ## Run it
 
-Requirements: [Bun](https://bun.sh), Docker, a PostgreSQL you can reach.
+Requirements: [Bun](https://bun.sh), Docker, a PostgreSQL you can reach. To use the deploy script:
+[PowerShell 7](https://learn.microsoft.com/powershell/scripting/install/installing-powershell) and, for
+live deploys, the [GitHub CLI](https://cli.github.com) signed in.
+
+**There is no login**: anyone who can reach the app can read and change its data, so keep it on your own
+network and never expose it to the internet. More in [SECURITY.md](SECURITY.md).
 
 ```bash
 git clone https://github.com/rrhinog/water-tracker.git
@@ -101,9 +106,16 @@ Deploy with Docker (two containers from one image — `live` on :4210 and `stagi
 can be tried on a phone before it reaches `main`):
 
 ```powershell
-.\scripts\deploy.ps1 staging   # build + migrate staging's database + recreate + health check
-.\scripts\deploy.ps1 live      # refuses unless you are on main
+.\scripts\deploy.ps1 staging          # this checkout's last commit (say, a feature branch)
+.\scripts\deploy.ps1 live v1.9.0      # a release tag on main, once its CI passed
+.\scripts\deploy.ps1 live v1.8        # roll back: the kept image of an earlier release, in seconds
 ```
+
+Each image is built from the git commit, never from your working folder (so `.env` can't end up inside
+it), named for its version and kept, the newest 5. A live deploy first checks the commit's CI on GitHub
+and backs up the database into `BACKUP_DIR` (set it in `.env`); after the swap, the main screens must
+load from the new version. Rollback, restoring a backup and monthly upkeep are in
+[RUNBOOK.md](RUNBOOK.md); the release steps are in [RELEASING.md](RELEASING.md).
 
 Staging is marked so it can't be mistaken for live: `APP_ENV=staging` in `docker-compose.yml` (read at
 request time, so the same image shows nothing on live) puts a **STAGING · demo data, not your log** bar

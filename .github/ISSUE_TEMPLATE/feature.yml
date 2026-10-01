@@ -1,0 +1,24 @@
+name: Feature
+description: Something new the app should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What should the app do, in plain words, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Done when…
+      description: How we'll know it works, as checks someone can try on a phone.
+      placeholder: "- [ ] …"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Sketches, edge cases, and what is out of scope.

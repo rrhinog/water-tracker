@@ -5,17 +5,23 @@ requests are welcome; expect a slow, friendly response.
 
 ## The loop
 
-Every change follows the same path, whether it's mine or yours:
+Every change follows the same path, whether it's mine or yours. The full checklist, with commands, is
+[RELEASING.md](RELEASING.md).
 
-1. Open an issue (or a short PR description) saying what you want and how you'll know it works.
-2. Branch from `main`: `git checkout -b feat/<name>`.
-3. Build it. Put real logic in `src/lib/` as pure functions with tests; keep components thin.
-4. `bun run test && bun run lint && bun run build` must pass. CI runs the same checks, plus a typecheck,
-   on every pull request.
-5. Open a PR. Keep it to one feature. Say what you tested on a phone, because that's where it's used.
-6. Releases (maintainer): add a `## [X.Y]` section to [CHANGELOG.md](CHANGELOG.md), then tag `main`
-   (`git tag -a vX.Y -m "vX.Y — short title"`) and push the tag. The Release workflow publishes the
-   GitHub Release from that section; it refuses a version the CHANGELOG doesn't describe.
+1. Open an issue with the **Feature** or **Bug** form: what you want, and how we'll know it works ("Done
+   when…"). A small fix can skip this and say it in the pull request.
+2. Branch from `main`, in its own worktree: `feat/<name>` or `fix/<name>`.
+3. Build it. Put real logic in `src/lib/` as pure functions with tests; keep components thin. Commit
+   messages follow [Conventional Commits](https://www.conventionalcommits.org) (`feat:`, `fix:`, `docs:`).
+4. `bun run test && bun run lint && bun run build` must pass. CI runs them on every pull request, plus a
+   typecheck, a secrets scan over every commit and a dependency audit.
+5. Open a PR; its template's Definition of Done is the checklist. Keep it to one feature. Say what you
+   tested on a phone, because that's where it's used.
+6. Releases (maintainer): versions are `vX.Y.Z` ([SemVer](https://semver.org)). A `## [X.Y.Z]` section in
+   [CHANGELOG.md](CHANGELOG.md), a tag on `main`, then a deploy; the Release workflow publishes the GitHub
+   Release from that section and refuses a version the CHANGELOG doesn't describe.
+
+Security problems: privately, as [SECURITY.md](SECURITY.md) says, not as an issue.
 
 ## Ground rules
 
@@ -25,8 +31,9 @@ Every change follows the same path, whether it's mine or yours:
   applies it: `deploy.ps1` runs it against the target's database before the new container starts, and
   records the file name in `schema_migrations`. **Never edit or rename a file once it is applied**
   anywhere; a fix is a new file. Don't add `BEGIN`/`COMMIT`: the runner wraps each file in a transaction.
-- **Keep migrations additive.** The old container is still serving while the migration runs, so a
-  change must work with both the old and new code (add a column now, drop the old one in a later release).
+- **Keep migrations additive.** The old container is still serving while the migration runs, and a
+  rollback runs the previous release on the new schema, so a change must work with both the old and new
+  code (add a column now, drop the old one in a later release).
 - **Staging never uses live's database.** Try a branch on staging against demo data; `bun run dev` should
   point at staging too.
 - **Offline first.** Anything that logs a drink must work with the server unreachable and sync later.

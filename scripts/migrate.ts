@@ -4,22 +4,26 @@
 //   bun scripts/migrate.ts staging             # STAGING_DATABASE_URL_FROM_HOST
 //   bun scripts/migrate.ts live                # LIVE_DATABASE_URL_FROM_HOST
 //   bun scripts/migrate.ts live --baseline     # record every file as applied WITHOUT running it
+//   bun scripts/migrate.ts live --dir <path>   # apply the files in <path> instead of ../drizzle
 //
 // Each file runs in its own transaction together with its schema_migrations row, so a failure
 // leaves nothing half-applied and the next run retries it. Bun loads .env automatically.
-// deploy.ps1 runs this before recreating a container and stops if it exits non-zero.
+// deploy.ps1 runs this before recreating a container, with --dir pointing at the drizzle/ folder
+// of the version being deployed, and stops if it exits non-zero. Deploying an older version
+// applies nothing: its files are all recorded already, and newer recorded ones only warn.
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
 import { CONTAINER_URL_VAR, HOST_URL_VAR, checkTarget, databaseName, isTarget } from "../src/lib/dbtarget";
 import { migrationFiles, pendingMigrations, stripOwnTransaction, summarize, unknownApplied } from "../src/lib/migrations";
 
-const DIR = path.join(import.meta.dirname, "..", "drizzle");
-
 async function main() {
   const args = process.argv.slice(2);
   const baseline = args.includes("--baseline");
-  const target = args.find((a) => !a.startsWith("--"));
+  const dirAt = args.indexOf("--dir");
+  if (dirAt !== -1 && !args[dirAt + 1]) throw new Error("--dir needs a path");
+  const DIR = dirAt === -1 ? path.join(import.meta.dirname, "..", "drizzle") : path.resolve(args[dirAt + 1]);
+  const target = args.find((a, i) => !a.startsWith("--") && (dirAt === -1 || i !== dirAt + 1));
   if (target !== undefined && !isTarget(target)) throw new Error(`unknown target "${target}" (live | staging)`);
 
   let url: string | undefined;

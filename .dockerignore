@@ -1,5 +1,20 @@
+# Files the image build never sees. The Dockerfile copies the whole folder (COPY . .), and Next's
+# standalone output copies any .env it finds into the final image, so a secret left out of this
+# list ends up inside every image built from this folder.
+
+# Secrets and this machine's own settings
+.env*
+docker-compose.override.yml
+
+# Built or installed on the host; the image installs and builds its own
 node_modules
 .next
+*.tsbuildinfo
+
+# Not needed to build the app (.claude holds worktrees: whole copies of the repo)
 .git
+.github
+.claude
+docs
 *.md
 !README.md

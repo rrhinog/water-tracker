@@ -1,7 +1,7 @@
 # Deploy one version of the app to the live or staging container, or roll back to an earlier one.
 #
 #   .\scripts\deploy.ps1 staging              # this checkout's last commit (e.g. a feature branch)
-#   .\scripts\deploy.ps1 staging feat/x       # any branch, tag or commit, without checking it out
+#   .\scripts\deploy.ps1 staging feat/x       # any branch, tag or commit (or sha-<commit>), without checking it out
 #   .\scripts\deploy.ps1 live v1.9.0          # a release tag on main
 #   .\scripts\deploy.ps1 live v1.8            # roll back: the kept v1.8 image starts again, no rebuild
 #   .\scripts\deploy.ps1 live v1.9.0 -DryRun  # check everything and say what would happen; change nothing
@@ -78,6 +78,7 @@ try {
         $Ref = "HEAD"
         if (git status --porcelain --untracked-files=no) { Write-Warning "Uncommitted changes in $here are NOT deployed, only its last commit." }
     }
+    if ($Ref -match '^sha-([0-9a-f]{7,40})$') { $Ref = $Matches[1] }   # an image name, as the summary prints it
     $full = git rev-parse --verify --quiet "$Ref^{commit}"
     if (-not $full) { Fail "Unknown branch, tag or commit '$Ref'" }
     $full = "$full".Trim()

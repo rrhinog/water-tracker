@@ -2,7 +2,39 @@
 
 All notable changes to this project. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and versions follow [Semantic Versioning](https://semver.org/): a new feature bumps the middle number,
-a fix to existing behaviour bumps the last.
+a fix to existing behaviour bumps the last. Release tags are `vX.Y.Z`; tags up to v1.8 left off a
+trailing `.0` (`v1.8` is 1.8.0).
+
+## [Unreleased]
+
+Nothing changes on screen. Deploys can be undone, backups are proven, and the checks run before anything
+goes live.
+
+### Added
+- **Deploy any version, roll back in seconds.** `deploy.ps1 live v1.9.0` deploys a release tag; the same
+  command with an earlier tag rolls back. Every release's image is kept (the newest 5), so going back
+  reuses it without a rebuild. Staging takes any branch, tag or commit; `-DryRun` checks without changing
+  anything.
+- **A backup before every live deploy**, `water_tracker_pre_<version>_<date>.dump` in `BACKUP_DIR`, with a
+  record of every table's row count from the same moment. `scripts/restore-check.ts` proves a backup
+  restores, in a throwaway container; `scripts/restore.ts` restores one into live or staging, with guards.
+- After a deploy, Today, History and Settings must load from the new release, not just `/api/health`.
+- Live refuses a version whose CI didn't pass (`scripts/ci-status.ts`).
+- CI scans every commit for secrets (gitleaks) and checks dependencies for high or critical
+  vulnerabilities; Dependabot proposes updates once a month.
+- RELEASING.md, RUNBOOK.md and SECURITY.md; a pull request template with the Definition of Done; issue
+  forms; AGENTS.md with this project's rules.
+
+### Changed
+- Images are built from the git commit, never from the working folder, so uncommitted edits and local
+  files can't reach them. `.dockerignore` also leaves out `.env*`: until now `/app/.env` was inside the
+  image.
+- Next.js 16.3.8, for a critical advisory (GHSA-vcvr-r3jv-pc5j) in `next/og`, which this app doesn't use.
+
+### Upgrade notes
+- Add `BACKUP_DIR` to `.env` (and `PG_CONTAINER` if Postgres runs in Docker): a live deploy refuses to
+  start without a backup folder. Live deploys also need the GitHub CLI (`gh`), signed in.
+- If you ever pushed an image built from a folder holding `.env` to a registry, change your database password.
 
 ## [1.8] — 2026-09-29
 
@@ -171,15 +203,16 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
-[1.8]: https://github.com/rrhinog/water-tracker/releases/tag/v1.8
-[1.7.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.7.1
-[1.7]: https://github.com/rrhinog/water-tracker/releases/tag/v1.7
-[1.6]: https://github.com/rrhinog/water-tracker/releases/tag/v1.6
-[1.5]: https://github.com/rrhinog/water-tracker/releases/tag/v1.5
-[1.4.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.4.1
-[1.4]: https://github.com/rrhinog/water-tracker/releases/tag/v1.4
-[1.3.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.3.1
-[1.3]: https://github.com/rrhinog/water-tracker/releases/tag/v1.3
-[1.2]: https://github.com/rrhinog/water-tracker/releases/tag/v1.2
-[1.1]: https://github.com/rrhinog/water-tracker/releases/tag/v1.1
+[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.8...HEAD
+[1.8]: https://github.com/rrhinog/water-tracker/compare/v1.7.1...v1.8
+[1.7.1]: https://github.com/rrhinog/water-tracker/compare/v1.7...v1.7.1
+[1.7]: https://github.com/rrhinog/water-tracker/compare/v1.6...v1.7
+[1.6]: https://github.com/rrhinog/water-tracker/compare/v1.5...v1.6
+[1.5]: https://github.com/rrhinog/water-tracker/compare/v1.4.1...v1.5
+[1.4.1]: https://github.com/rrhinog/water-tracker/compare/v1.4...v1.4.1
+[1.4]: https://github.com/rrhinog/water-tracker/compare/v1.3.1...v1.4
+[1.3.1]: https://github.com/rrhinog/water-tracker/compare/v1.3...v1.3.1
+[1.3]: https://github.com/rrhinog/water-tracker/compare/v1.2...v1.3
+[1.2]: https://github.com/rrhinog/water-tracker/compare/v1.1...v1.2
+[1.1]: https://github.com/rrhinog/water-tracker/compare/v1.0...v1.1
 [1.0]: https://github.com/rrhinog/water-tracker/releases/tag/v1.0

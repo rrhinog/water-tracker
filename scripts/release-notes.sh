@@ -7,7 +7,7 @@ v="$1"
 body="$(awk -v v="$v" '
   index($0, "## [" v "]") == 1 { on = 1; next }
   on && /^## \[/ { exit }
-  on && /^\[[0-9.]+\]: / { exit }
+  on && /^\[[^]]+\]: / { exit }
   on { print }
 ' CHANGELOG.md | sed -e '/./,$!d')"
 if [ -z "$body" ]; then

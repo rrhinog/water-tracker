@@ -49,11 +49,11 @@ describe("createPool", () => {
 
   it("sets connect and idle timeouts on the pool", () => {
     expect(POOL_OPTIONS.connectionTimeoutMillis).toBe(5_000);
-    expect(POOL_OPTIONS.idleTimeoutMillis).toBe(30_000);
+    expect(POOL_OPTIONS.idleTimeoutMillis).toBe(10_000);
     expect(POOL_OPTIONS.max).toBe(5);
     const options = make().options;
     expect(options.connectionTimeoutMillis).toBe(5_000);
-    expect(options.idleTimeoutMillis).toBe(30_000);
+    expect(options.idleTimeoutMillis).toBe(10_000);
     expect(options.max).toBe(5);
   });
 });
@@ -61,6 +61,7 @@ describe("createPool", () => {
 describe("getDb", () => {
   const saved = process.env.DATABASE_URL;
   afterEach(() => {
+    vi.restoreAllMocks();
     if (saved === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = saved;
     vi.resetModules();
@@ -92,10 +93,9 @@ describe("getDb", () => {
     const first = mod.getDb();
     expect(mod.getDb()).toBe(first);
     expect(made).toHaveLength(1);
-    expect(made[0].options).toMatchObject({ connectionString: UNREACHABLE, max: 5, connectionTimeoutMillis: 5_000, idleTimeoutMillis: 30_000 });
+    expect(made[0].options).toMatchObject({ connectionString: UNREACHABLE, max: 5, connectionTimeoutMillis: 5_000, idleTimeoutMillis: 10_000 });
     // A bare EventEmitter throws on an unhandled "error", exactly as the real pool would crash the process.
     expect(() => made[0].emitter.emit("error", new Error("restart"))).not.toThrow();
     expect(spy).toHaveBeenCalledTimes(1);
-    spy.mockRestore();
   });
 });

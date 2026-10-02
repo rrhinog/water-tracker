@@ -7,11 +7,6 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
-### Fixed
-- **Today follows Settings' default pace mode.** On a device that never tapped Even or My history, Today
-  always showed My history, whatever Settings said. It now uses Settings' default until you pick a
-  mode on Today; that pick still sticks on this device.
-
 ## [1.8.1] — 2026-10-01
 
 Nothing changes on screen. Deploys can be undone, backups are proven, and the checks run before anything

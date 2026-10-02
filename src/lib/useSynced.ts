@@ -13,6 +13,11 @@ import { fetchCoffee, fetchEntries, fetchSettings, flushPending, loadPending, pu
 
 /** How often to retry while the server can't be reached (also retried on `online` and on return to the app). */
 const RETRY_MS = 15_000;
+/**
+ * How often an open, online app pulls the server's view while it is on screen (and on return to it),
+ * so a drink logged elsewhere (an iPhone Shortcut, another device) shows up without a reload.
+ */
+const PULL_MS = 60_000;
 
 export type SyncState = "loading" | "synced" | "offline";
 export type SaveState = "idle" | "saving" | "saved" | "failed";
@@ -27,6 +32,9 @@ export function useSynced() {
   const [queue, setQueue] = useState<Op[]>(loadPending);
   // A Settings save the server never got: sent again before the next pull, or the pull would undo it.
   const settingsUnsent = useRef(false);
+  // Bumped by every local write. A pull that started before a tap can't tell whether the server's
+  // answer already holds that tap, so it leaves the screen alone and the next pull settles it.
+  const writes = useRef(0);
 
   // The accent is a CSS variable on <html>; pages read it through the kit classes.
   useEffect(() => {
@@ -49,7 +57,7 @@ export function useSynced() {
     }
   }, [settings.accent]);
 
-  // Flush the queue, then pull the server's view. Runs on load and again whenever a retry is due.
+  // Flush the queue, then pull the server's view. Runs on load, whenever a retry is due, and on each pull.
   const refresh = useCallback(async (isCancelled: () => boolean = () => false) => {
     try {
       // 1. Send anything queued from an earlier offline tap, in order, and a Save that failed.
@@ -61,8 +69,9 @@ export function useSynced() {
         setSettingsSavedAt(new Date());
       }
       // 2. Pull the server's view.
+      const started = writes.current;
       const [serverEntries, serverCoffee, serverSettings] = await Promise.all([fetchEntries(), fetchCoffee(), fetchSettings()]);
-      if (isCancelled()) return;
+      if (isCancelled() || writes.current !== started) return;
       setSettings(serverSettings);
       saveSettings(serverSettings);
       // 3. The server wins. Rows only this device has survive only while still queued to send;
@@ -111,6 +120,25 @@ export function useSynced() {
     };
   }, [sync, refresh]);
 
+  // While it can, pull now and then and on return to the app, one pull at a time.
+  useEffect(() => {
+    if (sync !== "synced") return;
+    let pulling = false;
+    const pull = () => {
+      if (pulling || document.visibilityState !== "visible") return;
+      pulling = true;
+      void refresh().finally(() => {
+        pulling = false;
+      });
+    };
+    const timer = setInterval(pull, PULL_MS);
+    document.addEventListener("visibilitychange", pull);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", pull);
+    };
+  }, [sync, refresh]);
+
   async function track(ok: Promise<boolean>) {
     const sent = await ok;
     setQueue(loadPending());
@@ -119,6 +147,7 @@ export function useSynced() {
 
   // Functional updates: a refresh can land between a render and a tap, and must not be overwritten.
   function changeEntries(f: (prev: Entry[]) => Entry[]) {
+    writes.current++;
     setEntries((prev) => {
       const next = f(prev);
       saveEntries(next);
@@ -126,6 +155,7 @@ export function useSynced() {
     });
   }
   function changeCoffees(f: (prev: CoffeeEntry[]) => CoffeeEntry[]) {
+    writes.current++;
     setCoffees((prev) => {
       const next = f(prev);
       saveCoffee(next);

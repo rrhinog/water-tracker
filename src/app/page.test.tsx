@@ -360,3 +360,57 @@ describe("Log faster (v1.8)", () => {
     delete document.documentElement.dataset.version;
   });
 });
+
+describe("Log without the app (v1.9)", () => {
+  // A drink an iPhone Shortcut logged through /api/log while the app sat open on Today.
+  const NOW = new Date(2026, 8, 24, 14, 30);
+  const fromShortcut = { id: "log-yeti-1425", at: new Date(2026, 8, 24, 14, 25).toISOString(), bottleId: "yeti", fraction: 1, oz: 36, untimed: false };
+  let rows: Map<string, typeof fromShortcut>;
+  let sent: string[];
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date", "setInterval", "clearInterval"] });
+    vi.setSystemTime(NOW);
+    rows = new Map();
+    sent = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      if (method === "DELETE") {
+        const id = decodeURIComponent(url.split("/").pop()!);
+        rows.delete(id);
+        sent.push(`DELETE ${id}`);
+      }
+      const body = url === "/api/entries" && method === "GET" ? [...rows.values()] : url === "/api/settings" ? {} : url === "/api/coffee" ? [] : {};
+      return { ok: true, status: 200, json: async () => body };
+    }));
+  });
+  afterEach(() => {
+    cleanup();
+    window.localStorage.clear();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+  const total = () => screen.getByRole("progressbar").getAttribute("aria-valuenow");
+
+  it("shows up on return to the app, and the row's ✕ removes it from the server like any drink", async () => {
+    render(<Tracker />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/entries", expect.anything()));
+    expect(total()).toBe("0");
+    rows.set(fromShortcut.id, fromShortcut);
+    act(() => void document.dispatchEvent(new Event("visibilitychange")));
+    await waitFor(() => expect(total()).toBe("36"));
+    expect(screen.getByRole("button", { name: /^Change time, 2:25/ })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Remove 36 oz entry" }));
+    await waitFor(() => expect(sent).toEqual(["DELETE log-yeti-1425"]));
+    expect(total()).toBe("0");
+  });
+
+  it("shows up within a minute while the app stays open", async () => {
+    render(<Tracker />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/entries", expect.anything()));
+    rows.set(fromShortcut.id, fromShortcut);
+    await act(() => vi.advanceTimersByTimeAsync(59_000));
+    expect(total()).toBe("0");
+    await act(() => vi.advanceTimersByTimeAsync(1_000));
+    await waitFor(() => expect(total()).toBe("36"));
+  });
+});

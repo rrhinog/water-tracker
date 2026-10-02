@@ -138,9 +138,17 @@ describe("eveningNeed", () => {
     expect(eveningH({ startH: 8, endH: 16 })).toBe(15);
   });
 
+  // Ryan's ruling (2026-10-02): option A, today's real rate. The two worked examples he decided on:
   it("warns when today's rate leaves more than a quarter of the floor for after the evening hour", () => {
-    // 40 oz by 2 PM is 5 oz an hour since 6 AM: 70 by 8 PM, so 30 still to go after it.
+    // 2 PM, 40 oz: 5 oz an hour since 6 AM, 70 by 8 PM, so 30 still to go after it.
     expect(eveningNeed(40, at(14))).toEqual({ oz: 30, afterH: 20 });
+    // 5 PM, 50 oz: 4.55 oz an hour over 11 hours, 63.6 by 8 PM, so 36.4 still to go after it.
+    expect(eveningNeed(50, at(17))).toEqual({ oz: 36, afterH: 20 });
+  });
+
+  it("can warn while My history says on pace: that curve is back-loaded itself, and the warning says so", () => {
+    expect(paceStatus("history", 40, at(14), at(9)).delta).toBe(0); // on pace at 2 PM
+    expect(eveningNeed(40, at(14))).not.toBeNull();
   });
 
   it("stays quiet on a day that is keeping up", () => {

@@ -42,6 +42,9 @@ export const DEFAULT_SETTINGS: Settings = {
   flavours: ["BRCC Spirit of '76", "Starbucks Vanilla", "Starbucks French Roast", "Bought out"],
 };
 
+/** The settings table's one row: everything above, as JSON. */
+export const SETTINGS_ROW = "app";
+
 export const ML_PER_OZ = 29.5735;
 
 /** Storage oz -> display number in the chosen unit. */

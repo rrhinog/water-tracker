@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb, settings } from "@/db";
-import { normalizeSettings } from "@/lib/settings";
+import { normalizeSettings, SETTINGS_ROW as KEY } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
-const KEY = "app";
 
 /** Current settings, or the defaults if none were ever saved. */
 export async function GET() {

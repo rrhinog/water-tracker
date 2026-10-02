@@ -7,6 +7,19 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+### Added
+- **Log without opening the app.** An iPhone Shortcut logs a drink from Back Tap or "Hey Siri, log a
+  Yeti": `POST /api/log` with a bottle's name (`{"bottle": "Yeti"}`, an optional `fraction`, or `Other`
+  with `oz`), and the server fills in the time and the ounces from Settings. Every answer carries a
+  `message` for the Shortcut to show; an unknown bottle is refused, naming the bottles it knows, and
+  nothing is written. An optional `requestId` makes a retry safe: the same one twice logs one drink. A
+  Shortcut can't wait offline like the app: when the server can't be reached, it says so and logs
+  nothing. README has the Shortcut, step by step.
+
+### Changed
+- The open app pulls from the server every minute while it's on screen, and as soon as you come back to
+  it, so a drink logged elsewhere (a Shortcut, another device) shows up without a reload.
+
 ## [1.8.2] — 2026-10-02
 
 Fixes only; nothing new on screen.

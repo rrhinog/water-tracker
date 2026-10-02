@@ -5,6 +5,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 import Settings from "@/components/Settings";
 import Tracker from "@/components/Tracker";
 import { DEFAULT_DISPLAY } from "@/lib/display";
+import { fmt } from "@/lib/settings";
 
 describe("Tracker", () => {
   // No server in unit tests: every fetch rejects, so the hook stays on the local cache.
@@ -375,5 +376,80 @@ describe("Log faster (v1.8)", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(screen.queryByRole("button", { name: /New version/ })).toBeNull();
     delete document.documentElement.dataset.version;
+  });
+});
+
+describe("Pace you can see (v1.9)", () => {
+  // Thu 24 Sep, 2:30 PM. 40 oz so far (an Owala at 9 AM); last Thursday, 36 oz by 2:30 and 40 more after.
+  const NOW = new Date(2026, 8, 24, 14, 30);
+  const drink = (id: string, d: number, h: number, oz: number) => ({ id, at: new Date(2026, 8, d, h).toISOString(), bottleId: "owala", fraction: 1, oz });
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
+    vi.stubGlobal("fetch", vi.fn(() => Promise.reject(new Error("offline"))));
+    window.localStorage.setItem("water.entries.v1", JSON.stringify([drink("lw1", 17, 10, 36), drink("lw2", 17, 16, 40), drink("t1", 24, 9, 40)]));
+  });
+  afterEach(() => {
+    cleanup();
+    window.localStorage.clear();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+  const notes = () => [...document.querySelectorAll(".pace-notes li")].map((li) => li.textContent);
+  const tickLeft = () => (document.querySelector(".pace-tick") as HTMLElement | null)?.style.left;
+
+  it("Even: the pace line, the bottle in hand, the evening warning and last week", () => {
+    window.localStorage.setItem("water.pace.v1", "even");
+    render(<Tracker />);
+    // 8.5 of the window's 15 hours: 57 oz expected, so the line sits at 57 % of the bar.
+    expect(tickLeft()).toMatch(/[^.\d]0\.57[^\d]/);
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toBe("40 oz of 100 oz; pace 57 oz by now");
+    expect(notes()).toEqual([
+      "pace now: 57 oz",
+      "Owala by 6:15 PM to catch up", // 80 oz with it; Even passes 80 at 6:15
+      "at today's rate you'll need 34 oz after 8:00 PM", // 40 oz over 8.5 h, kept up to 8 PM: 65.9
+      "same time last Thu: 36 oz",
+    ]);
+  });
+
+  it("My history: the line and the deadline follow the curve", () => {
+    window.localStorage.setItem("water.pace.v1", "history");
+    render(<Tracker />);
+    expect(tickLeft()).toMatch(/[^.\d]0\.5[^\d]/); // halfway from 40 (2 PM) to 80 (4 PM)
+    expect(notes().slice(0, 2)).toEqual(["pace now: 50 oz", "Owala by 6:15 PM to catch up"]);
+  });
+
+  it("the bottle in hand is the one picked, and a bottle that clears the floor says so", () => {
+    render(<Tracker />);
+    fireEvent.click(screen.getByRole("button", { name: /^CamelBak/ }));
+    expect(notes()).toContain("CamelBak by 6:45 PM to catch up"); // 90 oz: My history (80 at 6 PM, 100 at 7) passes it at 6:45
+    fireEvent.click(screen.getByRole("button", { name: /Log 50 oz/ }));
+    expect(notes()).toContain("this CamelBak clears the floor"); // 90 oz now, plus 50
+    expect(notes().some((n) => n?.startsWith("at today's rate"))).toBe(false); // keeping up now
+  });
+
+  it("speaks mL when the unit is mL", () => {
+    window.localStorage.setItem("water.settings.v1", JSON.stringify({ unit: "ml" }));
+    window.localStorage.setItem("water.pace.v1", "even");
+    render(<Tracker />);
+    expect(notes()).toEqual([
+      `pace now: ${fmt(57, "ml")}`,
+      "Owala by 6:15 PM to catch up",
+      `at today's rate you'll need ${fmt(34, "ml")} after 8:00 PM`,
+      `same time last Thu: ${fmt(36, "ml")}`,
+    ]);
+  });
+
+  it("ahead of pace, the deadline is to stay on pace", () => {
+    window.localStorage.setItem("water.entries.v1", JSON.stringify([drink("t1", 24, 9, 55)]));
+    render(<Tracker />);
+    expect(screen.getByText(/▲ 5 oz ahead/)).toBeDefined(); // My history expects 50 by 2:30
+    expect(notes()).toContain("Owala by 7:00 PM to stay on pace"); // 95 oz with it; the curve passes 95 at 7 PM
+  });
+
+  it("says when last week has nothing to compare", () => {
+    window.localStorage.setItem("water.entries.v1", JSON.stringify([drink("t1", 24, 9, 40)]));
+    render(<Tracker />);
+    expect(notes().at(-1)).toBe("same time last Thu: nothing logged");
   });
 });

@@ -7,6 +7,17 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+### Added
+- **Pace you can see**, on the Today card, in both pace modes, in oz or mL, at every display size:
+  - **Pace line:** a mark on the progress bar where the pace says you should be now, with "pace now: 57 oz"
+    under the bar.
+  - **Finish by:** when to finish the bottle in hand (the one picked under Log a drink): "Yeti by 2:15 PM to
+    stay on pace", "… to catch up" when you're behind, or "this Yeti clears the floor".
+  - **Evening warning** when the rest of the day is back-loaded: "at today's rate you'll need 34 oz after
+    8:00 PM". Today's rate is what you've drunk since the pace window opened, per hour, kept up until an
+    hour before the window closes; it shows when more than a quarter of the floor would be left then.
+  - **Same time last week:** "same time last Thu: 36 oz", what was logged by this time 7 days ago.
+
 ## [1.8.2] — 2026-10-02
 
 Fixes only; nothing new on screen.

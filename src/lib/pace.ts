@@ -138,6 +138,74 @@ export function paceStatus(
   };
 }
 
+/** The pace line on the progress bar: where you should be right now, as a share of the floor (0-100). */
+export function paceTickPct(expectedNow: number, floorOz: number): number {
+  return floorOz > 0 ? Math.max(0, Math.min(100, (expectedNow / floorOz) * 100)) : 0;
+}
+
+/**
+ * Finish by: the bottle in hand is logged when it's empty, so this is the time to finish it by for
+ * today's total, with it, to still be at or above the pace: "Yeti by 2:15 PM to stay on pace".
+ * "clears" when the bottle takes you past the floor. Null when there is no deadline to give: the floor
+ * is already cleared, or you'd still be behind even finishing it right now (the card says "drink now").
+ */
+export type FinishBy = { kind: "by"; h: number } | { kind: "clears" } | null;
+
+export function finishBy(
+  mode: PaceMode,
+  totalOz: number,
+  bottleOz: number,
+  now: Date,
+  floorOz = 100,
+  window: PaceWindow = DEFAULT_WINDOW,
+  ownCurve: Curve | null = null,
+): FinishBy {
+  if (totalOz >= floorOz) return null;
+  if (totalOz + bottleOz >= floorOz) return { kind: "clears" };
+  const h = hourWhenExpected(mode, totalOz + bottleOz, floorOz, window, ownCurve);
+  return h !== null && h > hourOf(now) ? { kind: "by", h } : null;
+}
+
+/** "Evening": one hour before the pace window ends (8 PM with the default 6 AM-9 PM window). */
+export function eveningH(window: PaceWindow): number {
+  return Math.max(window.startH, window.endH - 1);
+}
+
+/** Back-loaded: more than this share of the floor would be left for the evening. */
+export const BACKLOADED_SHARE = 0.25;
+
+/**
+ * Evening warning: keep today's rate so far (ounces since the window opened, per hour) until the
+ * evening hour, and what's still missing then is what you'd need after it: "you'll need 60 oz after
+ * 8 PM". Only shown when that is back-loaded, from the first-bottle checkpoint until the evening hour,
+ * and never once the floor is cleared.
+ */
+export function eveningNeed(totalOz: number, now: Date, floorOz = 100, window: PaceWindow = DEFAULT_WINDOW): { oz: number; afterH: number } | null {
+  const h = hourOf(now);
+  const evening = eveningH(window);
+  if (totalOz >= floorOz || h >= evening || h < firstBottleByH(window)) return null;
+  const rate = totalOz / (h - window.startH);
+  const need = floorOz - (totalOz + rate * (evening - h));
+  return need > floorOz * BACKLOADED_SHARE ? { oz: Math.round(need), afterH: evening } : null;
+}
+
+/**
+ * Same time last week: ounces logged `daysAgo` days ago by the same clock time as `now`. Null when that
+ * day has no timed drinks to compare with (nothing logged, or only backfill with no time).
+ */
+export function ozBySameTimeDaysAgo(
+  entries: readonly { at: string; oz: number; untimed?: boolean }[],
+  now: Date,
+  daysAgo = 7,
+): number | null {
+  const then = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysAgo, now.getHours(), now.getMinutes(), now.getSeconds());
+  const sameDay = (d: Date) => d.getFullYear() === then.getFullYear() && d.getMonth() === then.getMonth() && d.getDate() === then.getDate();
+  const timed = entries.filter((e) => !e.untimed && sameDay(new Date(e.at)));
+  if (!timed.some((e) => e.oz > 0)) return null;
+  const sum = timed.filter((e) => new Date(e.at).getTime() <= then.getTime()).reduce((a, e) => a + e.oz, 0);
+  return Math.round(sum * 10) / 10;
+}
+
 export function formatHour(h: number): string {
   const d = new Date(2000, 0, 1, Math.floor(h), Math.round((h % 1) * 60));
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Inter_Tight } from "next/font/google";
+import localFont from "next/font/local";
 import { connection } from "next/server";
 import "./globals.css";
 import DisplaySize from "@/components/DisplaySize";
@@ -9,9 +9,23 @@ import { appVersion } from "@/lib/health";
 import pkg from "../../package.json";
 import { displayScript } from "@/lib/display";
 
-// Ink Kit faces, self-hosted by Next at build time (no runtime request to Google).
-const sans = Inter_Tight({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], variable: "--font-inter-tight", display: "swap" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex-mono", display: "swap" });
+// Ink Kit faces, self-hosted from files committed in ./fonts (see fonts/README.md): no font download at
+// build time and no runtime request to a font host.
+const interTight = localFont({
+  src: "./fonts/inter-tight-latin-wght-normal.woff2",
+  weight: "400 800",
+  variable: "--font-inter-tight",
+  display: "swap",
+});
+const plexMono = localFont({
+  src: [
+    { path: "./fonts/ibm-plex-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/ibm-plex-mono-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
+  variable: "--font-plex-mono",
+  display: "swap",
+});
 
 // APP_ENV comes from the container (docker-compose.yml), so it must be read per request, not baked in
 // at build: connection() opts the pages into request-time rendering (bundled docs: environment-variables.md).
@@ -45,7 +59,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     // suppressHydrationWarning: the head script sets the display size on <html> before React hydrates.
     // data-version: the release this page came from; the update banner compares it with /api/health.
-    <html lang="en" className={`h-full ${sans.variable} ${mono.variable}`} data-version={appVersion(pkg.version, process.env.GIT_SHA)} suppressHydrationWarning>
+    <html lang="en" className={`h-full ${interTight.variable} ${plexMono.variable}`} data-version={appVersion(pkg.version, process.env.GIT_SHA)} suppressHydrationWarning>
       <head>
         {/* Display size (Settings → Display), applied while parsing so a reload never flashes at 100%. */}
         <script dangerouslySetInnerHTML={{ __html: displayScript() }} />

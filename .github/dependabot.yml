@@ -13,6 +13,11 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # @types/node follows the Node the app runs on (node:22 in the Dockerfile), not the newest Node:
+      # newer types would let code call APIs that don't exist at runtime. Move it by hand with the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # The workflows pin each action to a commit; this keeps those pins current.
   - package-ecosystem: github-actions

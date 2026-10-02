@@ -7,6 +7,8 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+## [1.8.1] — 2026-10-01
+
 Nothing changes on screen. Deploys can be undone, backups are proven, and the checks run before anything
 goes live.
 
@@ -206,7 +208,8 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
-[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.8...HEAD
+[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/rrhinog/water-tracker/compare/v1.8...v1.8.1
 [1.8]: https://github.com/rrhinog/water-tracker/compare/v1.7.1...v1.8
 [1.7.1]: https://github.com/rrhinog/water-tracker/compare/v1.7...v1.7.1
 [1.7]: https://github.com/rrhinog/water-tracker/compare/v1.6...v1.7

@@ -18,6 +18,26 @@ trailing `.0` (`v1.8` is 1.8.0).
     hour before the window closes; it shows when more than a quarter of the floor would be left then.
   - **Same time last week:** "same time last Thu: 36 oz", what was logged by this time 7 days ago.
 
+## [1.8.2] — 2026-10-02
+
+Fixes only; nothing new on screen.
+
+### Fixed
+- **Settings' default pace mode is used.** A device that has never tapped Even or My history now
+  follows the default chosen in Settings; it always showed My history before. Tapping a mode on a
+  device still wins there, as before.
+- **A dropped database connection logs one line.** When an idle connection breaks (the database
+  restarts, or drops it), the server logs one line and keeps serving. Before, it printed the whole
+  internal client to the log, about 190 lines including the database user, host and name (never the
+  password). A request to a database that is down now fails after 5 s instead of waiting forever.
+
+### Changed
+- **Fonts are part of the app.** Inter Tight and IBM Plex Mono are committed (`src/app/fonts/`, SIL Open
+  Font License), so building no longer downloads them from Google Fonts; a slow font service could fail
+  a build. Inter Tight renders identically; IBM Plex Mono differs only in anti-aliasing.
+- React 19.3.0.
+- Dependabot leaves `@types/node` on the Node version the app runs (22) and stops proposing major jumps.
+
 ## [1.8.1] — 2026-10-01
 
 Nothing changes on screen. Deploys can be undone, backups are proven, and the checks run before anything
@@ -219,7 +239,8 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
-[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.8.2...HEAD
+[1.8.2]: https://github.com/rrhinog/water-tracker/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/rrhinog/water-tracker/compare/v1.8...v1.8.1
 [1.8]: https://github.com/rrhinog/water-tracker/compare/v1.7.1...v1.8
 [1.7.1]: https://github.com/rrhinog/water-tracker/compare/v1.7...v1.7.1

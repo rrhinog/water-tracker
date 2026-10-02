@@ -67,6 +67,23 @@ describe("Tracker", () => {
     expect(window.localStorage.getItem("water.pace.v1")).toBe("even");
   });
 
+  it("uses Settings' default pace mode until this device picks one; a pick persists and wins", () => {
+    window.localStorage.setItem("water.settings.v1", JSON.stringify({ defaultPaceMode: "even" }));
+    const view = render(<Tracker />);
+    const chips = () => within(screen.getByRole("group", { name: "Pace mode" }));
+    expect(chips().getByRole("button", { name: "Even" }).getAttribute("aria-pressed")).toBe("true");
+    expect(chips().getByRole("button", { name: "My history" }).getAttribute("aria-pressed")).toBe("false");
+    expect(window.localStorage.getItem("water.pace.v1")).toBeNull();
+    fireEvent.click(chips().getByRole("button", { name: "My history" }));
+    expect(chips().getByRole("button", { name: "My history" }).getAttribute("aria-pressed")).toBe("true");
+    expect(window.localStorage.getItem("water.pace.v1")).toBe("history");
+    // Next visit: the device's pick still beats the Settings default.
+    view.unmount();
+    render(<Tracker />);
+    expect(chips().getByRole("button", { name: "My history" }).getAttribute("aria-pressed")).toBe("true");
+    expect(chips().getByRole("button", { name: "Even" }).getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("logs a coffee without touching the water total, and removes it", () => {
     render(<Tracker />);
     fireEvent.click(screen.getByRole("button", { name: /Log 40 oz/ }));

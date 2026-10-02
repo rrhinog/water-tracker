@@ -52,13 +52,14 @@ export function saveBottle(id: string): void {
   }
 }
 
-export function loadPaceMode(): PaceMode {
-  if (!canStore()) return "history";
+// null means this device never picked a mode, so Today uses Settings' default pace mode.
+export function loadPaceMode(): PaceMode | null {
+  if (!canStore()) return null;
   try {
     const v = window.localStorage.getItem(PACE_KEY);
-    return v === "even" || v === "history" ? v : "history";
+    return v === "even" || v === "history" ? v : null;
   } catch {
-    return "history";
+    return null;
   }
 }
 

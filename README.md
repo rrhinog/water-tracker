@@ -100,6 +100,7 @@ bun run dev      # http://localhost:3000
 bun run test     # vitest
 bun run lint
 bun run build
+bun run e2e      # main-path browser test against staging (Chrome or Edge; it refuses anything else)
 ```
 
 Deploy with Docker (two containers from one image — `live` on :4210 and `staging` on :4211 — so a branch

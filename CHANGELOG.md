@@ -19,6 +19,9 @@ goes live.
   record of every table's row count from the same moment. `scripts/restore-check.ts` proves a backup
   restores, in a throwaway container; `scripts/restore.ts` restores one into live or staging, with guards.
 - After a deploy, Today, History and Settings must load from the new release, not just `/api/health`.
+- `bun run e2e`: the main path on an emulated iPhone against staging (log, undo, refill, change a time,
+  yesterday, offline and back, update banner, no sideways scroll), each checked on the server. It
+  refuses any app without the STAGING bar and removes every drink it logged.
 - Live refuses a version whose CI didn't pass (`scripts/ci-status.ts`).
 - CI scans every commit for secrets (gitleaks) and checks dependencies for high or critical
   vulnerabilities; Dependabot proposes updates once a month.

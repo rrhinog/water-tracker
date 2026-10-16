@@ -10,6 +10,7 @@
 // come back when the queue caught up.
 import type { CoffeeEntry } from "./coffee";
 import type { Entry } from "./log";
+import type { Slip } from "./vices";
 import { normalizeSettings, type Settings } from "./settings";
 
 const PENDING_KEY = "water.pending.v1";
@@ -23,7 +24,9 @@ export type Op =
   | { kind: "upsert-entry"; entry: Entry }
   | { kind: "delete-entry"; id: string }
   | { kind: "upsert-coffee"; entry: CoffeeEntry }
-  | { kind: "delete-coffee"; id: string };
+  | { kind: "delete-coffee"; id: string }
+  | { kind: "upsert-slip"; entry: Slip }
+  | { kind: "delete-slip"; id: string };
 
 function canStore(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -56,7 +59,11 @@ async function send(op: Op): Promise<void> {
         ? [`/api/entries/${encodeURIComponent(op.id)}`, { method: "DELETE" }]
         : op.kind === "upsert-coffee"
           ? ["/api/coffee", { method: "POST", body: JSON.stringify(op.entry), headers: { "content-type": "application/json" } }]
-          : [`/api/coffee/${encodeURIComponent(op.id)}`, { method: "DELETE" }];
+          : op.kind === "delete-coffee"
+            ? [`/api/coffee/${encodeURIComponent(op.id)}`, { method: "DELETE" }]
+            : op.kind === "upsert-slip"
+              ? ["/api/slips", { method: "POST", body: JSON.stringify(op.entry), headers: { "content-type": "application/json" } }]
+              : [`/api/slips/${encodeURIComponent(op.id)}`, { method: "DELETE" }];
   // A server that can't be reached can hang rather than refuse; give up so the queue can retry.
   const res = await fetch(url, { ...init, signal: timeout(SEND_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`${op.kind} failed: ${res.status}`);
@@ -105,6 +112,12 @@ export async function fetchCoffee(): Promise<CoffeeEntry[]> {
   const res = await fetch("/api/coffee", { cache: "no-store" });
   if (!res.ok) throw new Error(`coffee ${res.status}`);
   return (await res.json()) as CoffeeEntry[];
+}
+
+export async function fetchSlips(): Promise<Slip[]> {
+  const res = await fetch("/api/slips", { cache: "no-store" });
+  if (!res.ok) throw new Error(`slips ${res.status}`);
+  return (await res.json()) as Slip[];
 }
 
 export async function fetchSettings(): Promise<Settings> {

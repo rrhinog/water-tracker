@@ -17,6 +17,13 @@ describe("mergeWithServer", () => {
     expect(merged.map((r) => r.id)).toEqual(["a", "offline"]);
   });
 
+  it("slips merge on their own queue kind, never a coffee's", () => {
+    const slip = { id: "s1", vice: "alcohol", at: "2026-09-23T22:00:00.000Z" };
+    expect(mergeWithServer([], [slip], [{ kind: "upsert-slip", entry: slip }], "slip")).toEqual([slip]);
+    expect(mergeWithServer([], [slip], [{ kind: "upsert-coffee", entry: { id: slip.id, at: slip.at } }], "slip")).toEqual([]);
+    expect(mergeWithServer([slip], [slip], [{ kind: "delete-slip", id: "s1" }], "slip")).toEqual([]);
+  });
+
   it("hides a row whose delete is still queued", () => {
     const merged = mergeWithServer([row("a", 9), row("b", 10)], [row("a", 9)], [{ kind: "delete-entry", id: "b" }], "entry");
     expect(merged.map((r) => r.id)).toEqual(["a"]);

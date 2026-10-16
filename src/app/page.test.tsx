@@ -339,7 +339,7 @@ describe("Log faster (v1.8)", () => {
         rows.delete(id);
         log.push(`DELETE ${id}`);
       }
-      const body = url === "/api/entries" && method === "GET" ? [...rows.values()] : url === "/api/coffee" ? [] : {};
+      const body = url === "/api/entries" && method === "GET" ? [...rows.values()] : url === "/api/coffee" || url === "/api/slips" ? [] : {};
       return { ok: true, status: 200, json: async () => body };
     }));
     window.dispatchEvent(new Event("online"));

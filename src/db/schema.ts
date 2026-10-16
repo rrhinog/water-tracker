@@ -27,6 +27,18 @@ export const coffeeEntries = pgTable("coffee_entries", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const slips = pgTable("slips", {
+  id: text("id").primaryKey(),
+  /** A vice id from Settings ("alcohol"); kept as logged even if the vice is later removed. */
+  vice: text("vice").notNull(),
+  at: timestamp("at", { withTimezone: true }).notNull(),
+  /** The chip picked ("Beer"), copied at log time. */
+  kind: text("kind"),
+  /** True for a row imported from a notes file (time unknown, set to noon). */
+  fromNotes: boolean("from_notes").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const settings = pgTable("settings", {
   key: text("key").primaryKey(),
   value: jsonb("value").notNull(),

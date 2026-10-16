@@ -25,6 +25,13 @@ describe("pendingLabel", () => {
     const ops: Op[] = [up("a"), { kind: "upsert-coffee", entry: { id: "c", at: "x" } }, { kind: "delete-coffee", id: "d" }];
     expect(pendingLabel(ops)).toBe("1 drink and 2 coffees waiting to sync");
   });
+
+  it("counts slips too, one per slip", () => {
+    const slip = { id: "s", vice: "alcohol", at: "x" };
+    expect(pendingLabel([{ kind: "upsert-slip", entry: slip }, { kind: "upsert-slip", entry: slip }])).toBe("1 slip waiting to sync");
+    const ops: Op[] = [up("a"), { kind: "delete-coffee", id: "d" }, { kind: "upsert-slip", entry: slip }, { kind: "delete-slip", id: "t" }];
+    expect(pendingLabel(ops)).toBe("1 drink, 1 coffee and 2 slips waiting to sync");
+  });
 });
 
 describe("offlineNote", () => {

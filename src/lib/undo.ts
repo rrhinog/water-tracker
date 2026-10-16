@@ -5,10 +5,10 @@
 export const UNDO_MS = 6000;
 
 export interface Undo {
-  kind: "entry" | "coffee";
+  kind: "entry" | "coffee" | "slip";
   /** The row the undo removes. */
   id: string;
-  /** "Logged 36 oz", "Logged a coffee". */
+  /** "Logged 36 oz", "Logged a coffee", "Logged a slip: Beer". */
   message: string;
   /** Epoch ms after which the bar is gone. */
   until: number;
@@ -23,8 +23,9 @@ export function undoOpen(u: Undo | null, now: number): u is Undo {
   return u !== null && now < u.until;
 }
 
-/** "Logged 36 oz", "Logged 36 oz for yesterday", "Logged a coffee". `amount` is already formatted. */
-export function undoMessage(what: { amount: string; yesterday?: boolean } | "coffee"): string {
+/** "Logged 36 oz", "Logged 36 oz for yesterday", "Logged a coffee", "Logged a slip: Beer". `amount` is already formatted. */
+export function undoMessage(what: { amount: string; yesterday?: boolean } | "coffee" | { slip: string | null; yesterday?: boolean }): string {
   if (what === "coffee") return "Logged a coffee";
+  if ("slip" in what) return `Logged a slip${what.slip ? `: ${what.slip}` : ""}${what.yesterday ? " for yesterday" : ""}`;
   return `Logged ${what.amount}${what.yesterday ? " for yesterday" : ""}`;
 }

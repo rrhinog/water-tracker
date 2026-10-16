@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS, bottleIdFor, fromUnit, normalizeSettings, sourceName, toUnit } from "./settings";
+import { DEFAULT_SETTINGS, bottleIdFor, fromUnit, normalizeSettings, sourceName, toUnit, viceIdFor } from "./settings";
 
 describe("units", () => {
   it("converts both ways and rounds sensibly", () => {
@@ -63,5 +63,57 @@ describe("bottle helpers", () => {
     expect(sourceName(DEFAULT_SETTINGS.bottles, "yeti")).toBe("Yeti");
     expect(sourceName([], "yeti")).toBe("yeti");
     expect(sourceName([], "other")).toBe("Other");
+  });
+});
+
+describe("vices and the Pact", () => {
+  it("a fresh install has no vices and no Pact", () => {
+    expect(DEFAULT_SETTINGS.vices).toEqual([]);
+    expect(DEFAULT_SETTINGS.pact).toBeNull();
+    expect(normalizeSettings({}).vices).toEqual([]);
+    expect(normalizeSettings({}).pact).toBeNull();
+  });
+
+  it("cleans vices like flavours: trimmed, unique ids, unique chips, a real clean-since date", () => {
+    const s = normalizeSettings({
+      vices: [
+        { id: " alcohol ", name: " Alcohol ", chips: [" Beer ", "", "Beer", 3, "Wine"], cleanSince: "2026-03-01" },
+        { id: "alcohol", name: "Twice", chips: [] },
+        { id: "sweets", name: "", chips: "nope", cleanSince: "2026-02-30" },
+        { id: "coffee", name: "Coffee", chips: [] },
+        { id: "", name: "No id", chips: [] },
+        "junk",
+      ],
+    });
+    expect(s.vices).toEqual([
+      { id: "alcohol", name: "Alcohol", chips: ["Beer", "Wine"], cleanSince: "2026-03-01" },
+      { id: "sweets", name: "sweets", chips: [] },
+    ]);
+  });
+
+  it("keeps a valid Pact and drops quits that are neither coffee nor a vice", () => {
+    const s = normalizeSettings({
+      vices: [{ id: "alcohol", name: "Alcohol", chips: [] }],
+      pact: { name: " 100 days ", start: "2026-03-01", days: 100.4, quits: ["alcohol", "coffee", "gone", "alcohol"] },
+    });
+    expect(s.pact).toEqual({ name: "100 days", start: "2026-03-01", days: 100, quits: ["alcohol", "coffee"] });
+  });
+
+  it("a Pact with no real start date is dropped; a bad length or name falls back", () => {
+    expect(normalizeSettings({ pact: { start: "soon", days: 100, quits: ["coffee"] } }).pact).toBeNull();
+    expect(normalizeSettings({ pact: { start: "2026-03-01", days: -3, quits: ["coffee"] } }).pact).toEqual({ name: "Pact", start: "2026-03-01", days: 100, quits: ["coffee"] });
+  });
+
+  it("the steps floor is a positive whole number, 10,000 by default", () => {
+    expect(DEFAULT_SETTINGS.stepsFloor).toBe(10000);
+    expect(normalizeSettings({ stepsFloor: 7500.6 }).stepsFloor).toBe(7501);
+    expect(normalizeSettings({ stepsFloor: 0 }).stepsFloor).toBe(10000);
+  });
+
+  it("makes readable vice ids and never reuses one, or coffee's", () => {
+    expect(viceIdFor("Late-night snacks", [])).toBe("late-night-snacks");
+    expect(viceIdFor("Alcohol", [{ id: "alcohol" }])).toMatch(/^alcohol-[a-z0-9]{4}$/);
+    expect(viceIdFor("Coffee", [])).toMatch(/^coffee-[a-z0-9]{4}$/);
+    expect(viceIdFor("!!!", [])).toBe("vice");
   });
 });

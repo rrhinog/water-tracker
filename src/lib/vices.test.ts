@@ -120,8 +120,8 @@ describe("pactStatus", () => {
   });
 
   it("a quit with no record is fully clean", () => {
-    const s = pactStatus({ ...pact, quits: ["weed"] }, new Map(), "2026-03-04");
-    expect(s.quits).toEqual([{ id: "weed", clean: 3, total: 3 }]);
+    const s = pactStatus({ ...pact, quits: ["tobacco"] }, new Map(), "2026-03-04");
+    expect(s.quits).toEqual([{ id: "tobacco", clean: 3, total: 3 }]);
   });
 });
 

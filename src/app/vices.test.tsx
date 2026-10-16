@@ -161,6 +161,29 @@ describe("Settings: Vices and Pact", () => {
   });
 });
 
+describe("History", () => {
+  it("a section per vice: run and best match Today, slip days on the calendar, by kind, and remove", async () => {
+    useSettings({ vices: [ALCOHOL] });
+    const at = (d: number, h: number) => new Date(2026, 8, d, h).toISOString();
+    window.localStorage.setItem("water.slips.v1", JSON.stringify([
+      { id: "s1", vice: "alcohol", at: at(10, 21), kind: "Beer" },
+      { id: "s2", vice: "alcohol", at: at(10, 22), kind: "Wine" },
+      { id: "s3", vice: "alcohol", at: at(20, 20), kind: "Beer" },
+      { id: "x", vice: "sweets", at: at(21, 20) },
+    ]));
+    const { default: History } = await import("@/components/History");
+    render(<History />);
+    const section = within(screen.getByRole("region", { name: "Alcohol-free" }));
+    expect(section.getByText("clean 21 of 23 days")).toBeDefined(); // the same words as the Today card
+    expect(section.getAllByText("ended 2026-09-09")).toHaveLength(1); // best run: Sep 1-9 (ties Sep 11-19; the first one stands)
+    expect([...document.querySelectorAll(".cal-cell.slip")].map((c) => c.textContent)).toEqual(["10", "20"]);
+    expect(section.getAllByRole("listitem").slice(0, 2).map((li) => li.textContent)).toEqual(["Beer2", "Wine1"]);
+    fireEvent.click(section.getByRole("button", { name: "Remove Alcohol slip on 2026-09-20" }));
+    expect(slips().map((s) => s.id)).toEqual(["s1", "s2", "x"]);
+    expect(queued()).toEqual([{ kind: "delete-slip", id: "s3" }]);
+  });
+});
+
 describe("offline", () => {
   it("slips logged while the server is down queue, then sync in order when it is back", async () => {
     useSettings({ vices: [ALCOHOL] });

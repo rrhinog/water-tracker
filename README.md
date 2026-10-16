@@ -23,6 +23,9 @@ What it does:
   "Started bottle" tap times the first one of the day.
 - **Coffee, target zero.** A coffee-free streak, a brew timer from pour to finished, flavours, and a
   coffee calendar.
+- **Vices and a Pact** (off until you add one). A card per thing you are quitting, with a Slip button
+  and clean days; a Pact scores your quits together over a set number of days ("2 of 3 days clean"),
+  beside your Floors: the water floor and, optionally, daily steps from your own database.
 - **History.** Streaks, 7 / 30 day and 13 week charts, a month calendar, week / month / quarter tables,
   first-drink-vs-floor and bottle-pace breakdowns.
 - **Make it yours.** Bottles, daily floor, oz or mL, pace window, coffee flavours and a colour theme,
@@ -73,6 +76,12 @@ different names:
 | `LIVE_DATABASE_URL_FROM_HOST` | `migrate.ts live`, deploy | `127.0.0.1:5432` |
 | `STAGING_DATABASE_URL_FROM_HOST` | `migrate.ts staging`, `seed-demo.ts staging`, deploy | `127.0.0.1:5432` |
 | `DATABASE_URL` | `bun run dev`, scripts run without a target | `127.0.0.1:5432`, point it at staging |
+| `LIVE_STEPS_DATABASE_URL`, `STAGING_STEPS_DATABASE_URL` | optional: each container's `STEPS_DATABASE_URL` | `postgres:5432` |
+
+Steps are optional. Point `STEPS_DATABASE_URL` at a read-only login that can read one view,
+`daily_steps` (`day` date, `steps` integer, `synced_at` timestamptz); left empty, the app shows no
+steps. The demo seed writes a `daily_steps` table into the staging database, so pointing
+`STAGING_STEPS_DATABASE_URL` at staging's own database shows demo steps there.
 
 Create the tables. The schema is hand-written SQL in `drizzle/`; `scripts/migrate.ts` applies the
 files it has not applied before, in order, and records each one in a `schema_migrations` table:
@@ -85,7 +94,7 @@ bun scripts/migrate.ts staging
 Already ran the files by hand before the runner existed? Record them without running them again:
 `bun scripts/migrate.ts live --baseline`.
 
-Fill staging with demo data (about 75 days of drinks and coffees, generated from a fixed seed). The
+Fill staging with demo data (about 75 days of drinks, coffees, slips and steps, generated from a fixed seed). The
 script refuses any database whose name does not end in `_staging` or `_demo`, and refuses one that
 already has rows unless you pass `--reset`:
 

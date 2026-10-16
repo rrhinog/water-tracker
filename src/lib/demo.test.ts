@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FRACTIONS } from "./bottles";
 import { STARTED, bottleDurations } from "./duration";
-import { DEMO_DAYS, generateDemoData, seededRandom } from "./demo";
+import { DEMO_DAYS, DEMO_PACT_DAYS_IN, DEMO_VICES, generateDemoData, seededRandom } from "./demo";
 import { dayKey, entriesForDay } from "./log";
 import { DEFAULT_SETTINGS, normalizeSettings } from "./settings";
 
@@ -53,10 +53,38 @@ describe("generateDemoData", () => {
     expect(data.coffee.length).toBeGreaterThan(5);
   });
 
-  it("uses DEFAULT_SETTINGS (a copy, not the shared object)", () => {
-    expect(data.settings).toEqual(DEFAULT_SETTINGS);
+  it("uses DEFAULT_SETTINGS (a copy, not the shared object) with the demo vices and Pact switched on", () => {
+    const { vices, pact, ...rest } = data.settings;
+    const { vices: _v, pact: _p, ...defaults } = DEFAULT_SETTINGS;
+    void _v; void _p;
+    expect(rest).toEqual(defaults);
     expect(data.settings).not.toBe(DEFAULT_SETTINGS);
+    expect(DEFAULT_SETTINGS.vices).toEqual([]);
+    expect(vices.map((v) => v.id)).toEqual(DEMO_VICES.map((v) => v.id));
+    expect(pact).toEqual({ name: "100-day Pact", start: dayKey(new Date(2026, 8, 24 - DEMO_PACT_DAYS_IN)), days: 100, quits: ["alcohol", "sweets", "coffee"] });
     expect(normalizeSettings(data.settings)).toEqual(data.settings);
+  });
+
+  it("makes demo slips on demo vices with their chips, none in the future or the three days before today", () => {
+    expect(data.slips.length).toBeGreaterThan(5);
+    for (const s of data.slips) {
+      const vice = DEMO_VICES.find((v) => v.id === s.vice)!;
+      expect(vice.chips).toContain(s.kind);
+      expect(new Date(s.at).getTime()).toBeLessThanOrEqual(NOW.getTime());
+    }
+    for (let back = 1; back <= 3; back++) {
+      const k = dayKey(new Date(2026, 8, 24 - back));
+      expect(data.slips.some((s) => dayKey(new Date(s.at)) === k)).toBe(false);
+    }
+    expect(new Set(data.slips.map((s) => s.id)).size).toBe(data.slips.length);
+  });
+
+  it("makes a steps row per day, today's as of a sync that already happened", () => {
+    expect(data.steps).toHaveLength(DEMO_DAYS);
+    const today = data.steps.at(-1)!;
+    expect(today.day).toBe(dayKey(NOW));
+    expect(new Date(today.syncedAt)).toEqual(new Date(2026, 8, 24, 12));
+    expect(generateDemoData(new Date(2026, 8, 24, 5)).steps.at(-1)!.day).toBe("2026-09-23");
   });
 
   it("gives today a started marker that times the first bottle", () => {

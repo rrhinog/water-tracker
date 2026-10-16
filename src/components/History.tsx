@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Shell from "@/components/Shell";
+import ViceHistory from "@/components/ViceHistory";
 import { coffeeHistory, coffeeMonths, coffeesByDay, coffeesByFlavour, coffeeStatus, formatMinutes, sipWindow } from "@/lib/coffee";
 import { durationStats, formatDuration } from "@/lib/duration";
 import { addDays, buildDays, chartBars, firstBottleTable, monthCells, periodStats, streaks, type Period } from "@/lib/history";
@@ -20,7 +21,7 @@ function monthLabel(month: string): string {
 }
 
 export default function History() {
-  const { entries, coffees, settings, offline, removeCoffee } = useSynced();
+  const { entries, coffees, slips, settings, offline, removeCoffee, removeSlip } = useSynced();
   const floor = settings.floorOz;
   const unit = settings.unit;
   const u = unitLabel(unit);
@@ -296,6 +297,8 @@ export default function History() {
             </div>
           </div>
         </section>
+
+        {settings.vices.map((v) => <ViceHistory key={v.id} vice={v} slips={slips} onRemove={removeSlip} />)}
       </main>
     </Shell>
   );

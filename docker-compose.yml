@@ -34,6 +34,8 @@ services:
       # Anything but exactly "staging" is live (src/lib/appenv.ts); stated here for clarity.
       - APP_ENV=live
       - DATABASE_URL=${LIVE_DATABASE_URL:?set LIVE_DATABASE_URL in .env}
+      # Optional read-only steps source (src/lib/steps.ts); empty = no steps.
+      - STEPS_DATABASE_URL=${LIVE_STEPS_DATABASE_URL:-}
     networks:
       - lifeos
     ports:
@@ -53,6 +55,8 @@ services:
       - APP_ENV=staging
       # Its own database with demo data (scripts/seed-demo.ts), never live's.
       - DATABASE_URL=${STAGING_DATABASE_URL:?set STAGING_DATABASE_URL in .env}
+      # Optional; point it at staging's own database to see the demo steps the seed writes.
+      - STEPS_DATABASE_URL=${STAGING_STEPS_DATABASE_URL:-}
     networks:
       - lifeos
     ports:

@@ -17,9 +17,9 @@ trailing `.0` (`v1.8` is 1.8.0).
   clean, so far (of 100)", with the run beside it and each quit's own hit-rate underneath. A slip
   counts on the calendar day it happened; today is pending until it is over.
 - **Floors.** Beside the Pact: how often the water floor was met, and, when a steps source is set up,
-  today's steps "as of" their last sync and how often the steps floor was met. The steps source is an
-  optional read-only database login (`STEPS_DATABASE_URL`, see `.env.example`); without it there are no
-  steps anywhere.
+  today's steps "as of" their last sync and how often the steps floor was met (a day with no steps data
+  is left out and counted as "no data"). The steps source is an optional read-only database login
+  (`STEPS_DATABASE_URL`, see `.env.example`); without it there are no steps anywhere.
 - **History per vice**: run now and best, a calendar of slip days, by kind, by month, and every slip
   with remove.
 - **Import slips kept by hand**: `scripts/import-slips.ts` reads a markdown file passed by path, dry

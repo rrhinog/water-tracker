@@ -172,17 +172,24 @@ export interface StepsSummary {
   today: StepsDay | null;
   /** When the newest row was synced: what the card shows as "as of", never "now". */
   asOf: string | null;
-  /** Days at or over the floor; a day with no row is a miss. */
+  /** Days with a row that reached the floor, out of the days with a row. */
   tally: Tally;
+  /** Days in the window with no row: no data, neither clean nor missed. */
+  noData: number;
 }
 
 export function stepsSummary(rows: readonly StepsDay[], floor: number, window: { start: string; last: string }, today: string): StepsSummary {
-  const short = new Set<string>();
   const by = new Map(rows.map((r) => [r.day, r]));
-  for (let k = window.start; k <= window.last; k = addDays(k, 1)) if (!((by.get(k)?.steps ?? 0) >= floor)) short.add(k);
+  let clean = 0, total = 0, noData = 0;
+  for (let k = window.start; k <= window.last; k = addDays(k, 1)) {
+    const row = by.get(k);
+    if (!row) { noData++; continue; }
+    total++;
+    if (row.steps >= floor) clean++;
+  }
   let asOf: string | null = null;
   for (const r of rows) if (asOf === null || r.syncedAt > asOf) asOf = r.syncedAt;
-  return { today: by.get(today) ?? null, asOf, tally: hitRate(short, window.start, window.last) };
+  return { today: by.get(today) ?? null, asOf, tally: { clean, total }, noData };
 }
 
 export interface SlipMonth { month: string; slips: number; slipDays: number; cleanDays: number }

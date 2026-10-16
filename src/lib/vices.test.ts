@@ -146,8 +146,9 @@ describe("floors", () => {
     const s = stepsSummary(rows, 10000, { start: "2026-03-01", last: "2026-03-03" }, "2026-03-04");
     expect(s.today).toEqual(rows[2]);
     expect(s.asOf).toBe("2026-03-04T17:00:00.000Z");
-    expect(s.tally).toEqual({ clean: 1, total: 3 }); // a day with no row is a miss
-    expect(stepsSummary([], 10000, { start: "2026-03-01", last: "2026-03-03" }, "2026-03-04")).toMatchObject({ today: null, asOf: null });
+    expect(s.tally).toEqual({ clean: 1, total: 2 }); // Mar 3 has no row: no data, not a miss
+    expect(s.noData).toBe(1);
+    expect(stepsSummary([], 10000, { start: "2026-03-01", last: "2026-03-03" }, "2026-03-04")).toEqual({ today: null, asOf: null, tally: { clean: 0, total: 0 }, noData: 3 });
   });
 });
 

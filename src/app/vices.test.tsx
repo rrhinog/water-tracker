@@ -111,9 +111,9 @@ describe("Pact and Floors", () => {
     const body = (url: string) => (url === "/api/steps" ? { enabled: true, days } : url === "/api/settings" ? { pact: { ...PACT, quits: ["coffee"] } } : url === "/api/health" ? {} : []);
     vi.stubGlobal("fetch", vi.fn(async (url: string) => ({ ok: true, status: 200, json: async () => body(url) })));
     render(<Tracker />);
-    expect(await screen.findByText(/8,412 today · as of 12:00\sPM · floor 10,000/)).toBeDefined();
+    expect(await screen.findByText(/8,412 today · as of 12:00\sPM · floor 10,000 · no data for 1 day/)).toBeDefined();
     const steps = card("Floors").getAllByRole("listitem")[1];
-    expect(steps.textContent).toMatch(/1\/3 33%$/); // Sep 21 no row, 22 short, 23 over
+    expect(steps.textContent).toMatch(/1\/2 50%$/); // Sep 21 no row (no data), 22 short, 23 over
   });
 
   it("with the steps source switched off, the steps line hides", async () => {

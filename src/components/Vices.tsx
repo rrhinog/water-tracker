@@ -214,6 +214,7 @@ export function FloorsCard({ windowLabel, water, waterToday, steps, stepsFloor, 
                   ? `${NUM_FMT.format(steps.today?.steps ?? 0)} today · ${asOfLabel(steps.asOf, now)}`
                   : stepsState === "unreachable" ? "steps source unreachable" : "no steps yet"}
                 {` · floor ${NUM_FMT.format(stepsFloor)}`}
+                {steps && steps.noData > 0 && ` · no data for ${plural(steps.noData, "day")}`}
               </span>
             </span>
             {steps && <span className="mono ml-auto" style={{ whiteSpace: "nowrap" }}>{steps.tally.clean}/{steps.tally.total} <span className="ink-badge">{pct(steps.tally)}</span></span>}

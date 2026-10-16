@@ -11,7 +11,9 @@
 // chips the same way and otherwise kept as written. Lines with no date (headings, prose) are ignored.
 // A dated line that says coffee, or "clean"/"none", is skipped and counted: coffee has its own table.
 // A dated line naming no known vice is an error, and the script refuses to write until it is fixed.
-// Ids come from the date, vice and order in the file, so running the import twice adds nothing.
+// Ids come from the slip itself (day, time or "notime", vice), so running the import twice adds nothing,
+// and a line added above others later does not move their ids. Only two identical slips (same minute,
+// same vice) get a -2, -3 suffix in file order.
 import { dayKey } from "./log";
 import { isIsoDay } from "./settings";
 import { COFFEE_QUIT, type Slip } from "./vices";
@@ -65,7 +67,8 @@ export function parseSlipFile(text: string, vices: readonly ImportVice[]): Impor
     // Table pipes, commas and a colon after the vice ("Alcohol: Wine") are separators; "21:30" is a time.
     const after = raw.slice(d.index + day.length).replace(/[|,]|(?<!\d):|:(?!\d)/g, " ");
     const time = splitTime(after.trim());
-    const cleaned = time.rest.replace(/[-–—*_]+/g, " ").trim().replace(/\s+/g, " ");
+    // Drop markdown emphasis and dashes that stand alone as separators; a hyphen inside a word ("Pre-roll") stays.
+    const cleaned = time.rest.replace(/[*_]+/g, " ").replace(/(^|\s)[-–—]+(?=\s|$)/g, " ").trim().replace(/\s+/g, " ");
     const words = cleaned.toLowerCase();
     if (!words) return void out.errors.push({ line, reason: "no vice named" });
     if (/^(clean|none)\b/.test(words)) return void out.skipped.push({ line, reason: "clean" });
@@ -74,10 +77,12 @@ export function parseSlipFile(text: string, vices: readonly ImportVice[]): Impor
     if (!hit) return void out.errors.push({ line, reason: `no vice in Settings matches "${words.split(" ")[0]}"` });
     const kindText = cleaned.slice(hit.key.length).trim();
     const kind = kindText ? (hit.v.chips.find((c) => norm(c) === norm(kindText)) ?? kindText) : undefined;
-    const n = (seen.get(`${day} ${hit.v.id}`) ?? 0) + 1;
-    seen.set(`${day} ${hit.v.id}`, n);
+    const hhmm = time.h === null ? "notime" : `${String(time.h).padStart(2, "0")}${String(time.m).padStart(2, "0")}`;
+    const base = `import-${day}-${hhmm}-${hit.v.id}`;
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
     const when = time.h === null ? at(day, 12, 0) : at(day, time.h, time.m);
-    const slip: Slip = { id: `import-${day}-${hit.v.id}-${n}`, vice: hit.v.id, at: when.toISOString() };
+    const slip: Slip = { id: n === 1 ? base : `${base}-${n}`, vice: hit.v.id, at: when.toISOString() };
     if (kind) slip.kind = kind;
     if (time.h === null) slip.fromNotes = true;
     out.slips.push(slip);

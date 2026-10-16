@@ -57,7 +57,9 @@ Settings values on each install, never code.
 - **Steps** come from an optional, read-only Postgres connection, `STEPS_DATABASE_URL`, to a view
   named `daily_steps` with columns `day` (date), `steps` (integer) and `synced_at` (timestamptz). If
   the variable is unset, the steps line hides, so the public app needs no steps source. Steps are
-  shown "as of" their last sync ("8,412 steps · as of 12:00"), never as live.
+  shown "as of" their last sync ("8,412 steps · as of 12:00"), never as live. A day in the window with
+  no steps row is **no data**: it is left out of the steps hit-rate (neither clean nor missed), and the
+  card says "no data for N days". The water floor is unchanged: a day with no drinks is a miss.
 
 ### D: History, demo data, import
 - History: a section per vice, reusing coffee's layout: run now and best, a calendar of slip days, a

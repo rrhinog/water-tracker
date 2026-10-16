@@ -153,6 +153,13 @@ export function floorWindow(pact: Pact | null, today: string): { start: string; 
   return { start: pact.start, last: yesterday < end ? yesterday : end };
 }
 
+/** Days in a window that pass a test (a Floor met), out of the days in it. */
+export function tallyWhere(window: { start: string; last: string }, hit: (day: string) => boolean): Tally {
+  const miss = new Set<string>();
+  for (let k = window.start; k <= window.last; k = addDays(k, 1)) if (!hit(k)) miss.add(k);
+  return hitRate(miss, window.start, window.last);
+}
+
 export interface StepsDay {
   /** YYYY-MM-DD */
   day: string;

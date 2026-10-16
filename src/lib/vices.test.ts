@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   bestRun, floorWindow, hitRate, makeSlip, pactStatus, recordStart, runEndingAt, slipDays, slipMonths, slipsByKind,
-  slipCounts, stepsSummary, viceStatus, type Slip,
+  slipCounts, stepsSummary, tallyWhere, viceStatus, type Slip,
 } from "./vices";
 
 const slip = (vice: string, d: string, hhmm = "20:00", kind?: string): Slip => {
@@ -130,6 +130,11 @@ describe("floors", () => {
     expect(floorWindow({ name: "P", start: "2026-03-01", days: 100, quits: [] }, "2026-03-05")).toEqual({ start: "2026-03-01", last: "2026-03-04" });
     expect(floorWindow({ name: "P", start: "2026-03-01", days: 3, quits: [] }, "2026-03-05")).toEqual({ start: "2026-03-01", last: "2026-03-03" });
     expect(floorWindow(null, "2026-03-31")).toEqual({ start: "2026-03-01", last: "2026-03-30" });
+  });
+
+  it("water: days the floor was met, out of the window's days", () => {
+    const cleared = new Set(["2026-03-01", "2026-03-03"]);
+    expect(tallyWhere({ start: "2026-03-01", last: "2026-03-04" }, (k) => cleared.has(k))).toEqual({ clean: 2, total: 4 });
   });
 
   it("steps: today's count, as of its sync, and the hit-rate against the floor", () => {

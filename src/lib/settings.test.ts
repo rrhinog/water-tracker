@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SETTINGS, bottleIdFor, fromUnit, normalizeSettings, sourceName, toUnit, viceIdFor } from "./settings";
+import { DEFAULT_SETTINGS, bottleIdFor, fromUnit, normalizeSettings, sourceName, toUnit, viceIdFor, viceProblems } from "./settings";
 
 describe("units", () => {
   it("converts both ways and rounds sensibly", () => {
@@ -108,6 +108,18 @@ describe("vices and the Pact", () => {
     expect(DEFAULT_SETTINGS.stepsFloor).toBe(10000);
     expect(normalizeSettings({ stepsFloor: 7500.6 }).stepsFloor).toBe(7501);
     expect(normalizeSettings({ stepsFloor: 0 }).stepsFloor).toBe(10000);
+  });
+
+  it("says what blocks Save in the Vices and Pact cards", () => {
+    const ok = { vices: [{ id: "a", name: "Alcohol", chips: ["Beer"] }], pact: { name: "P", start: "2026-03-01", days: 100, quits: ["a"] }, stepsFloor: 10000 };
+    expect(viceProblems(ok)).toEqual([]);
+    expect(viceProblems({ ...ok, vices: [{ id: "a", name: " ", chips: [] }] })).toEqual(["Every vice needs a name"]);
+    expect(viceProblems({ ...ok, vices: [{ id: "a", name: "Alcohol", chips: [] }, { id: "b", name: "alcohol ", chips: [] }] })).toEqual(["Vice names must be unique"]);
+    expect(viceProblems({ ...ok, vices: [{ id: "a", name: "A", chips: ["Beer", " Beer", ""] }] })).toEqual(["Every chip needs a name", "A vice's chips must be unique"]);
+    expect(viceProblems({ ...ok, vices: [{ id: "a", name: "A", chips: [], cleanSince: "" }] })).toEqual(["Pick a real clean-since date"]);
+    expect(viceProblems({ ...ok, pact: { name: "", start: "", days: 0, quits: [] }, stepsFloor: 0 })).toEqual([
+      "The Pact needs a name", "Pick the Pact's start date", "The Pact lasts 1 to 3650 days", "The Pact needs at least one quit", "Steps floor must be at least 1",
+    ]);
   });
 
   it("makes readable vice ids and never reuses one, or coffee's", () => {

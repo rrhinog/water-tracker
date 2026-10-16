@@ -170,6 +170,25 @@ export function bottleIdFor(name: string, existing: readonly Bottle[]): string {
   return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/** What blocks Save in the Vices and Pact cards, in words; empty when the draft is fine. */
+export function viceProblems(s: Pick<Settings, "vices" | "pact" | "stepsFloor">): string[] {
+  const out: string[] = [];
+  const names = s.vices.map((v) => v.name.trim().toLowerCase());
+  if (names.some((n) => !n)) out.push("Every vice needs a name");
+  else if (new Set(names).size !== names.length) out.push("Vice names must be unique");
+  if (s.vices.some((v) => v.chips.some((c) => !c.trim()))) out.push("Every chip needs a name");
+  if (s.vices.some((v) => new Set(v.chips.map((c) => c.trim())).size !== v.chips.length)) out.push("A vice's chips must be unique");
+  if (s.vices.some((v) => v.cleanSince !== undefined && !isIsoDay(v.cleanSince))) out.push("Pick a real clean-since date");
+  if (s.pact) {
+    if (!s.pact.name.trim()) out.push("The Pact needs a name");
+    if (!isIsoDay(s.pact.start)) out.push("Pick the Pact's start date");
+    if (!Number.isInteger(s.pact.days) || s.pact.days < 1 || s.pact.days > 3650) out.push("The Pact lasts 1 to 3650 days");
+    if (s.pact.quits.length === 0) out.push("The Pact needs at least one quit");
+  }
+  if (!(s.stepsFloor >= 1)) out.push("Steps floor must be at least 1");
+  return out;
+}
+
 /** A stable id for a new vice from its name. Never an id in use, and never "coffee" (the Pact's coffee quit). */
 export function viceIdFor(name: string, existing: readonly { id: string }[]): string {
   const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "vice";

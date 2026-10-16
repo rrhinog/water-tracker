@@ -1,6 +1,6 @@
 // The main path on an emulated iPhone, against STAGING (demo data): log, undo, refill, change a
-// time, log for yesterday, offline and back, the update banner, and no sideways scroll at any
-// display size. Every check reads the server afterwards, not just the screen.
+// time, log for yesterday, offline and back, the update banner, a Shortcut's request, and no sideways
+// scroll at any display size. Every check reads the server afterwards, not just the screen.
 //
 //   bun run e2e                                         # staging, http://127.0.0.1:4211
 //   E2E_BASE_URL=http://127.0.0.1:3000 bun run e2e      # e.g. APP_ENV=staging bun run dev
@@ -202,6 +202,44 @@ describe(`main path on ${BASE}`, () => {
     await open();
     await wait(2000);
     expect(await page.$(".app-banner--update"), "no banner when the versions match").toBeNull();
+  });
+
+  it("a Shortcut logs a bottle by name, once per request id, refuses an unknown bottle, and the open app shows it", async () => {
+    await open();
+    const { bottles } = (await (await fetch(BASE + "/api/settings", { cache: "no-store" })).json()) as { bottles: { id: string; name: string; oz: number }[] };
+    const bottle = bottles[0];
+    const n = (await created()).length;
+    const loggedToday = () => page.evaluate(() => {
+      const head = [...document.querySelectorAll(".ink-card__head")].find((h) => h.textContent?.startsWith("Logged today"));
+      return Number(head?.textContent?.match(/(\d+) drinks?$/)?.[1] ?? 0);
+    });
+    const shownBefore = await loggedToday();
+    // What the Shortcut sends: a name, no id, no time, no ounces.
+    const send = (body: object) => fetch(BASE + "/api/log", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const requestId = `e2e-${Date.now()}`;
+
+    const first = await send({ bottle: bottle.name.toUpperCase(), fraction: 0.5, requestId });
+    expect(first.status, "logged").toBe(201);
+    expect((await first.json()).message).toMatch(/^Logged .* · ½ /);
+    const again = await send({ bottle: bottle.name, fraction: 0.5, requestId });
+    expect(again.status, "the same request again").toBe(200);
+    expect((await again.json()).message).toMatch(/^Already logged/);
+    const rows = await created();
+    expect(rows, "one drink, not two").toHaveLength(n + 1);
+    expect(rows.find((e) => e.id === `log-${requestId}`), "its size comes from Settings").toMatchObject({ bottleId: bottle.id, oz: Math.round(bottle.oz * 5) / 10 });
+
+    const unknown = await send({ bottle: "No such bottle e2e" });
+    expect(unknown.status, "an unknown bottle is refused").toBe(400);
+    expect((await unknown.json()).message).toMatch(/^No bottle called "No such bottle e2e"/);
+    expect(await created(), "and nothing is written").toHaveLength(n + 1);
+
+    // Back to the open app: it pulls, and the drink is an ordinary row with an ✕.
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await wait(2000);
+    expect(await loggedToday(), "the open app shows it").toBe(shownBefore + 1);
+    await tap('button[aria-label^="Remove "][aria-label$=" oz entry"]'); // the newest drink is at the top
+    await wait(1800);
+    expect((await created()).some((e) => e.id === `log-${requestId}`), "✕ removes it from the server").toBe(false);
   });
 
   it("never scrolls sideways on Today, History or Settings at 80, 90 or 125 %", async () => {

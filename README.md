@@ -17,6 +17,8 @@ What it does:
 - **Log faster.** "Logged 36 oz · Undo" for a few seconds after every drink or coffee; **Refill** repeats
   your last drink in one tap; tap a drink's time to fix it ("I finished this at 2"); log a forgotten
   bottle for **Yesterday** at the time you pick.
+- **Log without opening the app.** An iPhone Shortcut logs a bottle by name with a double tap on the back
+  of the phone or "Hey Siri, log a Yeti" ([how](#log-without-opening-the-app-iphone-shortcut)).
 - **Today against a daily floor** (100 oz by default), with **pace**: ahead or behind, next drink due, and a
   first-bottle checkpoint. Two pace modes: an even spread, or a curve learned from your own cleared days.
 - **Bottle timing.** Each finished bottle shows how long it took and ounces per hour; an optional
@@ -162,6 +164,45 @@ tailscale serve --bg --https=8446 http://127.0.0.1:4211   # staging
 Set `TS_HTTPS_HOST=yourpc.your-tailnet.ts.net` in `.env` and the deploy script prints the HTTPS URL.
 Add to Home Screen from that URL. A new origin starts with an empty local cache; your data is on
 the server, so nothing is lost, but open the old app once first so anything it logged offline is sent.
+
+## Log without opening the app (iPhone Shortcut)
+
+One Shortcut logs a bottle when you double-tap the back of the phone (Back Tap) or say "Hey Siri, log a
+Yeti". It sends only the bottle's **name**: the server looks up the size in Settings, so changing a bottle
+never means editing the Shortcut. The phone reaches the app the same way the installed app does (your
+network or tailnet, above). Try it on staging first: its address logs into the demo data.
+
+Build it in the Shortcuts app (**+**, then add these actions):
+
+1. Name the Shortcut what you'll say, for example **Log a Yeti**.
+2. **Get Contents of URL**: `https://yourpc.your-tailnet.ts.net:8445/api/log` (staging: port `8446`).
+   Show more: Method **POST**, Request Body **JSON**, one field `bottle` set to `Yeti` (a bottle's name as
+   it is in Settings; capitals don't matter).
+3. **Get Dictionary Value**: Value for `message` in Contents of URL.
+4. **Show Result** of that Dictionary Value. Siri reads it aloud.
+
+Then **Back Tap**: Settings → Accessibility → Touch → Back Tap → Double Tap (or Triple Tap) → your
+Shortcut. **Siri** runs a Shortcut by its name: "Hey Siri, log a Yeti".
+
+| Fields you send | What it answers |
+| --- | --- |
+| `bottle` Yeti | Logged 36 oz · Yeti |
+| `bottle` Yeti, `fraction` 0.5 (0.25, 0.5, 0.75 or 1) | Logged 18 oz · ½ Yeti |
+| `bottle` Other, `oz` 16.9 (an amount that isn't one of your bottles) | Logged 16.9 oz |
+| `bottle` Nalgene (not in Settings) | No bottle called "Nalgene". Yours: Owala, Yeti, CamelBak. … Nothing is logged. |
+
+Numbers can be sent as Number or Text fields. The drink shows up in the open app within a minute, or as
+soon as you go back to it, as an ordinary drink: tap its time to change it, ✕ to remove it.
+
+**If the server can't be reached** (Wi-Fi or Tailscale off, server down), the Shortcut stops with an iOS
+error saying it couldn't connect, and **nothing is logged**. Unlike the app, a Shortcut can't keep a drink
+and send it later: log that one in the app. If the server answers but its database is down, the
+Shortcut says "Not logged: the server can't reach its database".
+
+**Safe to retry (optional).** Add a Text field `requestId`. The same `requestId` twice logs one drink, and
+the second answer starts "Already logged". Made from the time to the minute (a **Format Date** action on
+Current Date, custom format `yyyy-MM-dd'T'HH:mm`, then `requestId` = `yeti-` and that Formatted Date), an
+accidental second Back Tap in the same minute logs nothing new.
 
 ## Make it yours
 

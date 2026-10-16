@@ -2,8 +2,8 @@
 // Target is zero, so the metric is clean days: days WITHOUT a slip. Pure functions, no browser APIs.
 //
 // Days are local calendar days (dayKey), so a slip at 23:59 counts on its own day and one at 00:01 on
-// the next, the same boundary water and coffee use. Today is pending: no hit-rate or run counts it
-// until it is over. Coffee is not a slip; its days come in through coffeeDays() as one more set of
+// the next, the same boundary water and coffee use. Today is pending in every hit-rate until it is
+// over; a run counts up to yesterday, but a slip today ends it at once (the run reads 0). Coffee is not a slip; its days come in through coffeeDays() as one more set of
 // missed days, so these functions never need to know which quit a set belongs to.
 import { addDays } from "./history";
 import { dayKey } from "./log";
@@ -85,7 +85,7 @@ export function recordStart(vice: ViceLike, miss: ReadonlySet<string>): string |
 }
 
 export interface ViceStatus extends Tally {
-  /** Clean days in a row, ending yesterday. */
+  /** Clean days in a row, ending yesterday; 0 as soon as today has a slip. */
   run: number;
   todayCount: number;
   start: string | null;
@@ -100,7 +100,7 @@ export function viceStatus(vice: Vice, slips: readonly Slip[], now: Date): ViceS
   const tally = start ? hitRate(miss, start, yesterday) : { clean: 0, total: 0 };
   return {
     ...tally,
-    run: runEndingAt(miss, start, yesterday),
+    run: miss.has(today) ? 0 : runEndingAt(miss, start, yesterday),
     todayCount: slips.filter((s) => s.vice === vice.id && dayKey(new Date(s.at)) === today).length,
     start,
   };
@@ -114,7 +114,7 @@ export interface PactStatus {
   end: string;
   /** Days with no slip for ANY covered quit, over the completed days so far. */
   combined: Tally;
-  /** Combined clean days in a row, ending on the last completed day. */
+  /** Combined clean days in a row, ending on the last completed day; 0 as soon as any covered quit has a slip today. */
   run: number;
   /** Each quit's own hit-rate over the same days, in the Pact's order. */
   quits: (Tally & { id: string })[];
@@ -140,7 +140,7 @@ export function pactStatus(pact: Pact, miss: ReadonlyMap<string, ReadonlySet<str
     day: phase === "upcoming" ? 0 : phase === "done" ? pact.days : daysBetween(pact.start, today) + 1,
     end,
     combined: hitRate(combinedMiss, pact.start, last),
-    run: runEndingAt(combinedMiss, pact.start, last),
+    run: phase === "running" && combinedMiss.has(today) ? 0 : runEndingAt(combinedMiss, pact.start, last),
     quits: pact.quits.map((id) => ({ id, ...hitRate(miss.get(id) ?? new Set(), pact.start, last) })),
   };
 }

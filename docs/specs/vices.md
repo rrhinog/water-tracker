@@ -21,11 +21,13 @@ Settings values on each install, never code.
 
 - **A slip counts on the calendar day it happened**, at local midnight, the same boundary water and
   coffee use. A slip at 23:59 is that day; at 00:01 it is the next.
-- **Today is pending** until it is over: it never counts as clean or missed in a hit-rate or a run.
+- **Today is pending** until it is over: it never counts as clean or missed in a hit-rate.
 - **A quit's day is clean** when it has no slip (for coffee: no coffee that day).
 - **A run** is the consecutive clean days ending yesterday. It never reaches back before the record
   starts: the vice's "clean since" date, or its first slip when that date is not set. For the Pact,
-  the record starts on Day 1.
+  the record starts on Day 1. **A slip today ends the run at once**: the vice's run (on Today and in
+  History) reads 0 as soon as it has a slip today, and the Pact's run reads 0 as soon as any covered
+  quit has one (a coffee counts). The best run and every hit-rate are unchanged by it.
 - **Hit-rate** is clean days out of completed days in a window: "clean 31 of 33 days".
 
 ## What gets built (one release, four lanes)

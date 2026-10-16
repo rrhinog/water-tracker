@@ -46,6 +46,8 @@ describe("Vices on Today", () => {
     fireEvent.click(screen.getByRole("button", { name: "Beer" }));
     expect(slips()).toEqual([expect.objectContaining({ vice: "alcohol", kind: "Beer", at: NOW.toISOString() })]);
     expect(card("Alcohol-free").getByText("1 slip today")).toBeDefined();
+    expect(card("Alcohol-free").getByText("0")).toBeDefined(); // a slip today ends the run at once
+    expect(card("Alcohol-free").getByText("clean 23 of 23 days")).toBeDefined(); // the hit-rate waits for the day to end
     expect(undoText()).toBe("Logged a slip: BeerUndo");
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
     expect(slips()).toEqual([]);

@@ -72,10 +72,16 @@ describe("record start", () => {
 
 describe("viceStatus (the Today card)", () => {
   const vice = { id: "alcohol", name: "Alcohol", chips: [], cleanSince: "2026-03-01" };
-  it("clean X of Y completed days and the run; today is pending", () => {
+  it("clean X of Y completed days; with no slip today the run ends yesterday (today pending)", () => {
+    const s = viceStatus(vice, [slip("alcohol", "2026-03-03")], day("2026-03-10", 21));
+    expect(s).toEqual({ clean: 8, total: 9, run: 6, todayCount: 0, start: "2026-03-01" });
+  });
+
+  it("a slip today makes the run 0 at once; the hit-rate still counts completed days only", () => {
     const slips = [slip("alcohol", "2026-03-03"), slip("alcohol", "2026-03-10", "08:00")];
     const s = viceStatus(vice, slips, day("2026-03-10", 21));
-    expect(s).toEqual({ clean: 8, total: 9, run: 6, todayCount: 1, start: "2026-03-01" });
+    expect(s).toEqual({ clean: 8, total: 9, run: 0, todayCount: 1, start: "2026-03-01" });
+    expect(bestRun(slipDays(slips, "alcohol"), "2026-03-01", "2026-03-09")).toEqual({ best: 6, bestEnd: "2026-03-09" }); // best run unchanged
   });
   it("tomorrow, today's slip is a missed day and the run restarts", () => {
     const s = viceStatus(vice, [slip("alcohol", "2026-03-10", "08:00")], day("2026-03-11"));
@@ -106,6 +112,16 @@ describe("pactStatus", () => {
       { id: "alcohol", clean: 5, total: 6 },
       { id: "coffee", clean: 4, total: 6 },
     ]);
+  });
+
+  it("a slip today for any covered quit (a coffee counts) makes the combined run 0; rates still count completed days", () => {
+    const withCoffeeToday = new Map([...misses, ["coffee", new Set(["2026-03-04", "2026-03-02", "2026-03-07"])]]);
+    const s = pactStatus(pact, withCoffeeToday, "2026-03-07");
+    expect(s.run).toBe(0);
+    expect(s.combined).toEqual({ clean: 4, total: 6 });
+    expect(s.quits).toEqual([{ id: "alcohol", clean: 5, total: 6 }, { id: "coffee", clean: 4, total: 6 }]);
+    // A slip today for a quit the Pact does not cover changes nothing.
+    expect(pactStatus(pact, new Map([...misses, ["sweets", new Set(["2026-03-07"])]]), "2026-03-07").run).toBe(2);
   });
 
   it("Day 1 is all pending: 0 of 0", () => {

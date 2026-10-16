@@ -73,4 +73,9 @@ jobs:
       - name: Audit dependencies
         # Reads bun.lock against the advisory database; fails on high or critical. A new advisory
         # fails the next PR, and Dependabot (.github/dependabot.yml) proposes the update.
-        run: bun audit --audit-level=high
+        #
+        # Reviewed exception, added 2026-10-16, review by 2026-11-16 (then drop it if a fix has shipped):
+        #   GHSA-vfj7-8cjw-p6xm, braces <=3.0.3. No fixed release exists yet (3.0.3 is the latest), and it is
+        #   dev-only: eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch > braces. It runs
+        #   in linting on trusted files, never in the app.
+        run: bun audit --audit-level=high --ignore GHSA-vfj7-8cjw-p6xm

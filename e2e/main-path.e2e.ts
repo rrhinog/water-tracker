@@ -1,6 +1,6 @@
 // The main path on an emulated iPhone, against STAGING (demo data): log, undo, refill, change a
-// time, log for yesterday, offline and back, the update banner, and no sideways scroll at any
-// display size. Every check reads the server afterwards, not just the screen.
+// time, log for yesterday, offline and back, the update banner, pace on the Today card, and no sideways
+// scroll at any display size. Every check reads the server afterwards, not just the screen.
 //
 //   bun run e2e                                         # staging, http://127.0.0.1:4211
 //   E2E_BASE_URL=http://127.0.0.1:3000 bun run e2e      # e.g. APP_ENV=staging bun run dev
@@ -202,6 +202,44 @@ describe(`main path on ${BASE}`, () => {
     await open();
     await wait(2000);
     expect(await page.$(".app-banner--update"), "no banner when the versions match").toBeNull();
+  });
+
+  it("shows pace on Today in both modes: the line on the bar where it should be, the notes under it", async () => {
+    // The pace expects nothing before the window opens (6 AM by default). Look from a time zone where
+    // it's daytime now, so the line is there to check at any hour this runs.
+    const zones = ["America/New_York", "Europe/London", "Asia/Tokyo", "America/Los_Angeles", "Asia/Kolkata", "Australia/Sydney"];
+    const hourIn = (tz: string) => Number(new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(new Date()));
+    await page.emulateTimezone(zones.find((tz) => hourIn(tz) >= 10 && hourIn(tz) <= 18));
+    try {
+      for (const mode of ["Even", "My history"]) {
+        await open();
+        await tapButton(new RegExp(`^${mode}$`));
+        await wait(400);
+        const seen = await page.evaluate(() => {
+          const bar = document.querySelector('[role="progressbar"]')!.getBoundingClientRect();
+          const tick = document.querySelector(".pace-tick")?.getBoundingClientRect() ?? null;
+          return {
+            text: document.querySelector('[role="progressbar"]')!.getAttribute("aria-valuetext") ?? "",
+            bar: { left: bar.left + 2, width: bar.width - 4 }, // inside the 2px border, where the fill is measured
+            tick: tick && { centre: tick.left + tick.width / 2, height: tick.height },
+            notes: [...document.querySelectorAll(".pace-notes li")].map((li) => li.textContent ?? ""),
+          };
+        });
+        const [, floor, paceNow] = seen.text.match(/of ([\d.]+) (?:oz|mL); pace ([\d.]+) (?:oz|mL) by now$/)!.map(Number);
+        expect(paceNow, `${mode}: pace expects something by now`).toBeGreaterThan(0);
+        expect(seen.tick, `${mode}: the pace line is on the bar`).not.toBeNull();
+        expect(seen.tick!.height).toBeGreaterThan(0);
+        const shouldBe = seen.bar.left + (seen.bar.width * Math.min(paceNow, floor)) / floor;
+        expect(Math.abs(seen.tick!.centre - shouldBe), `${mode}: where the pace is now`).toBeLessThan(2);
+        expect(seen.notes[0], `${mode}: the line's key`).toMatch(/^pace now: [\d.]+ (oz|mL)$/);
+        expect(seen.notes.at(-1), `${mode}: same time last week`).toMatch(/^same time last \w+: ([\d.]+ (oz|mL)|nothing logged)$/);
+        for (const n of seen.notes.slice(1, -1)) {
+          expect(n, `${mode}: finish-by or the evening warning`).toMatch(/ by \d{1,2}:\d{2}\s?[AP]M to (stay on pace|catch up)$|^this .+ clears the floor$|^at today's rate you'll need [\d.]+ (oz|mL) after \d{1,2}:\d{2}\s?[AP]M$/);
+        }
+      }
+    } finally {
+      await page.emulateTimezone(undefined);
+    }
   });
 
   it("never scrolls sideways on Today, History or Settings at 80, 90 or 125 %", async () => {

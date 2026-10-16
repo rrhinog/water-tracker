@@ -7,7 +7,7 @@ import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCof
 import { bottleDurations, drinks, formatDuration, isStart, makeStartEntry } from "@/lib/duration";
 import { clearedDayProfiles } from "@/lib/history";
 import { byTime, dayKey, entriesForDay, lastDrink, makeCustomEntry, makeEntry, recentCustomAmounts, refillOf, totalOz, type Entry } from "@/lib/log";
-import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
+import { curveFromDays, eveningNeed, finishBy, formatHour, ozBySameTimeDaysAgo, paceStatus, paceTickPct, type PaceMode } from "@/lib/pace";
 import { bottleById, fmt, fromUnit, sourceName, toUnit, unitLabel } from "@/lib/settings";
 import { loadBottle, loadPaceMode, saveBottle, savePaceMode } from "@/lib/storage";
 import { makeUndo, undoMessage, type Undo } from "@/lib/undo";
@@ -16,6 +16,7 @@ import { retime, timeValue, YESTERDAY_DEFAULT_TIME, yesterdayAt } from "@/lib/wh
 
 const DAY_FMT = new Intl.DateTimeFormat([], { weekday: "short", day: "numeric", month: "short" });
 const TIME_FMT = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit" });
+const WEEKDAY_FMT = new Intl.DateTimeFormat([], { weekday: "short" });
 
 export default function Tracker() {
   // Loaded with ssr: false (see page.tsx), so localStorage is readable in lazy initializers.
@@ -126,6 +127,12 @@ export default function Tracker() {
   const durations = bottleDurations(today);
   const ownCurve = curveFromDays(clearedDayProfiles(entries, floorOz));
   const pace = paceStatus(paceMode, total, now, firstAt, floorOz, window, ownCurve);
+  // Pace you can see: the line on the bar, the bottle in hand, the evening, and last week.
+  const tickPct = paceTickPct(pace.expected, floorOz);
+  const finish = other ? null : finishBy(paceMode, total, bottle.oz, now, floorOz, window, ownCurve);
+  const evening = eveningNeed(total, now, floorOz, window);
+  const lastWeekOz = ozBySameTimeDaysAgo(entries, now);
+  const lastWeekDay = WEEKDAY_FMT.format(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7));
   const coffee = coffeeStatus(coffees, now);
   const todayCoffees = coffees.filter((c) => !c.fromNotes && dayKey(new Date(c.at)) === dayKey(now));
   const openCoffee = coffees.find((c) => isOpen(c, now)) ?? null;
@@ -228,9 +235,24 @@ export default function Tracker() {
                 <p style={{ margin: "0 0 14px", font: "400 15px/1.4 var(--font-sans)", color: "var(--ink-700)" }}>
                   {cleared ? `floor cleared, ${fmt(total - floorOz, unit)} over` : `${fmt(remaining, unit)} to the floor`}
                 </p>
-                <div style={{ height: 14, border: "2px solid var(--ink-black)", borderRadius: 999, overflow: "hidden", background: "var(--ink-white)" }} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-                  <div className="fill" style={{ width: `${pct}%`, height: "100%" }} />
+                <div style={{ position: "relative" }}>
+                  <div style={{ height: 14, border: "2px solid var(--ink-black)", borderRadius: 999, overflow: "hidden", background: "var(--ink-white)" }} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
+                    aria-valuetext={`${fmt(total, unit)} of ${fmt(floorOz, unit)}; pace ${fmt(pace.expected, unit)} by now`}>
+                    <div className="fill" style={{ width: `${pct}%`, height: "100%" }} />
+                  </div>
+                  {/* Placed over the bar's inside (2px border each side), where the fill's percentages are measured. */}
+                  {pace.expected > 0 && <span className="pace-tick" aria-hidden="true" style={{ left: `calc(2px + (100% - 4px) * ${tickPct / 100})` }} />}
                 </div>
+                <ul className="pace-notes">
+                  {pace.expected > 0 && <li><span className="pace-key" aria-hidden="true" />pace now: {fmt(pace.expected, unit)}</li>}
+                  {finish && (
+                    <li className="pace-finish">
+                      {finish.kind === "clears" ? `this ${bottle.name} clears the floor` : `${bottle.name} by ${formatHour(finish.h)} ${pace.delta < 0 ? "to catch up" : "to stay on pace"}`}
+                    </li>
+                  )}
+                  {evening && <li className="pace-evening">at today&apos;s rate you&apos;ll need {fmt(evening.oz, unit)} after {formatHour(evening.afterH)}</li>}
+                  <li className="pace-last-week">same time last {lastWeekDay}: {lastWeekOz === null ? "nothing logged" : fmt(lastWeekOz, unit)}</li>
+                </ul>
               </div>
               <div className="eink__foot"><b>Pace</b><span>{paceWord}</span>{nextWord && <span>{nextWord}</span>}</div>
               {!cleared && (

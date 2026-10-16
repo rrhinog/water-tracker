@@ -124,6 +124,14 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
    line first; a phrase only breaks inside when it is wider than the line on its own (large display sizes). */
 .eink__foot { font-size: 14px; flex-wrap: wrap; row-gap: 4px; }
 
+/* Pace you can see (Today card). The pace line is ink with a paper halo, so it reads on the fill and on
+   the empty track in both themes; it reaches past the bar so it can't be mistaken for the fill's edge.
+   The notes under the bar are sentences that wrap, never widen the page. */
+.pace-tick { position: absolute; top: -5px; bottom: -5px; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--ink-black); box-shadow: 0 0 0 2px var(--ink-white); pointer-events: none; }
+.pace-notes { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font: 400 14px/1.4 var(--font-sans); color: var(--ink-700); }
+.pace-key { display: inline-block; width: 4px; height: 12px; margin-right: 8px; border-radius: 2px; background: var(--ink-black); vertical-align: -1px; }
+.pace-evening { color: var(--ink-black); font-weight: 600; }
+
 /* Staging banner (APP_ENV=staging only, app/layout.tsx): an ink bar pinned to the top. It sits above
    the page's own content and nowhere near the bottom tab bar or Save bar; the spacer reserves its
    height so it hides nothing at rest. Scales with the display size like everything else. */

@@ -19,6 +19,9 @@ What it does:
   bottle for **Yesterday** at the time you pick.
 - **Today against a daily floor** (100 oz by default), with **pace**: ahead or behind, next drink due, and a
   first-bottle checkpoint. Two pace modes: an even spread, or a curve learned from your own cleared days.
+- **Pace you can see.** A line on the progress bar where you should be right now; when to finish the
+  bottle in hand ("Yeti by 2:15 PM to stay on pace"); a warning when the rest of the day is piling up for
+  the evening ("you'll need 34 oz after 8:00 PM"); and where you were at this time last week.
 - **Bottle timing.** Each finished bottle shows how long it took and ounces per hour; an optional
   "Started bottle" tap times the first one of the day.
 - **Coffee, target zero.** A coffee-free streak, a brew timer from pour to finished, flavours, and a

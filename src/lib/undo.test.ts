@@ -28,4 +28,9 @@ describe("undoMessage", () => {
   it("says when it went to yesterday", () => {
     expect(undoMessage({ amount: "40 oz", yesterday: true })).toBe("Logged 40 oz for yesterday");
   });
+
+  it("names a slip's chip, and yesterday", () => {
+    expect(undoMessage({ slip: "Beer" })).toBe("Logged a slip: Beer");
+    expect(undoMessage({ slip: null, yesterday: true })).toBe("Logged a slip for yesterday");
+  });
 });

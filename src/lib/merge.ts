@@ -7,7 +7,7 @@ import type { Op } from "./sync";
 
 type Row = { id: string; at: string };
 
-export function mergeWithServer<T extends Row>(server: readonly T[], local: readonly T[], pending: readonly Op[], kind: "entry" | "coffee"): T[] {
+export function mergeWithServer<T extends Row>(server: readonly T[], local: readonly T[], pending: readonly Op[], kind: "entry" | "coffee" | "slip"): T[] {
   const upserts = new Set<string>();
   const deletes = new Set<string>();
   for (const op of pending) {

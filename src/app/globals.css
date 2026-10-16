@@ -112,6 +112,7 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
 .cal-cell { display: grid; place-items: center; aspect-ratio: 1; border-radius: 6px; font: 500 12px/1 var(--font-mono); border: 2px solid var(--ink-300); color: var(--ink-700); }
 .cal-cell.hit { background: var(--ink-hit); color: var(--ink-on-hit); border-color: var(--ink-hit); }
 .cal-cell.coffee { background: var(--coffee); color: var(--on-coffee); border-color: var(--coffee); }
+.cal-cell.slip { background: var(--ink-black); color: var(--ink-white); border-color: var(--ink-black); }
 .coffee-btn, .coffee-btn:hover { background: var(--coffee); border-color: var(--coffee); color: var(--on-coffee); }
 .cal-cell.miss { border-color: var(--ink-black); color: var(--ink-black); }
 .cal-cell.today { outline: 2px solid var(--ink-black); outline-offset: 2px; }

@@ -2,16 +2,19 @@
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Shell from "@/components/Shell";
+import { FloorsCard, PactCard, ViceCard } from "@/components/Vices";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
-import { coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
+import { coffeeDays, coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
 import { bottleDurations, drinks, formatDuration, isStart, makeStartEntry } from "@/lib/duration";
-import { clearedDayProfiles } from "@/lib/history";
+import { buildDays, clearedDayProfiles } from "@/lib/history";
 import { byTime, dayKey, entriesForDay, lastDrink, makeCustomEntry, makeEntry, recentCustomAmounts, refillOf, totalOz, type Entry } from "@/lib/log";
 import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
 import { bottleById, fmt, fromUnit, sourceName, toUnit, unitLabel } from "@/lib/settings";
 import { loadBottle, loadPaceMode, saveBottle, savePaceMode } from "@/lib/storage";
 import { makeUndo, undoMessage, type Undo } from "@/lib/undo";
+import { useSteps } from "@/lib/useSteps";
 import { useSynced } from "@/lib/useSynced";
+import { COFFEE_QUIT, floorWindow, pactStatus, slipDays, stepsSummary, tallyWhere, type Slip } from "@/lib/vices";
 import { retime, timeValue, YESTERDAY_DEFAULT_TIME, yesterdayAt } from "@/lib/when";
 
 const DAY_FMT = new Intl.DateTimeFormat([], { weekday: "short", day: "numeric", month: "short" });
@@ -19,7 +22,8 @@ const TIME_FMT = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit
 
 export default function Tracker() {
   // Loaded with ssr: false (see page.tsx), so localStorage is readable in lazy initializers.
-  const { entries, coffees, settings, offline, addEntry, updateEntry, removeEntry, addCoffee, updateCoffee, removeCoffee } = useSynced();
+  const { entries, coffees, slips, settings, offline, addEntry, updateEntry, removeEntry, addCoffee, updateCoffee, removeCoffee, addSlip, updateSlip, removeSlip } = useSynced();
+  const steps = useSteps();
   // A ticking clock so an open coffee's elapsed time updates once a minute.
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -95,6 +99,7 @@ export default function Tracker() {
   function undoLast() {
     if (!undo) return;
     if (undo.kind === "entry") removeEntry(undo.id);
+    else if (undo.kind === "slip") removeSlip(undo.id);
     else removeCoffee(undo.id);
     setUndo(null);
   }
@@ -136,8 +141,14 @@ export default function Tracker() {
     addCoffee(c);
     setUndo({ ...makeUndo("coffee", c.id, undoMessage("coffee"), new Date().getTime()), from: "coffee" });
   };
+  const logSlip = (s: Slip) => {
+    addSlip(s);
+    const kind = s.kind ?? null;
+    setUndo({ ...makeUndo("slip", s.id, undoMessage({ slip: kind, yesterday: dayKey(new Date(s.at)) !== dayKey(new Date()) }), new Date().getTime()), from: `vice:${s.vice}` });
+  };
   // The bar goes as soon as its row does (removed by hand), not only when the time runs out.
-  const undoShown = undo && (undo.kind === "entry" ? entries : coffees).some((r) => r.id === undo.id) ? undo : null;
+  const undoRows: readonly { id: string }[] = undo?.kind === "entry" ? entries : undo?.kind === "slip" ? slips : coffees;
+  const undoShown = undo && undoRows.some((r) => r.id === undo.id) ? undo : null;
   const undoBar = (from: UndoFrom) => (undoShown?.from === from ? <UndoBar message={undoShown.message} onUndo={undoLast} /> : null);
   const elapsedOf = (c: { at: string }) => formatMinutes(Math.round((now.getTime() - new Date(c.at).getTime()) / 60000));
   const coffeeRow = (c: (typeof coffees)[number], last = false) => {
@@ -167,6 +178,17 @@ export default function Tracker() {
       </li>
     );
   };
+
+  // Vices, the Pact and the Floors. Coffee days count as missed days for the Pact's coffee quit.
+  const { vices, pact } = settings;
+  const todayKey = dayKey(now);
+  const misses = new Map<string, Set<string>>([[COFFEE_QUIT, coffeeDays(coffees)], ...vices.map((v) => [v.id, slipDays(slips, v.id)] as [string, Set<string>])]);
+  const pactNow = pact ? pactStatus(pact, misses, todayKey) : null;
+  const floors = floorWindow(pact, todayKey);
+  const waterDays = buildDays(entries, floorOz);
+  const waterTally = tallyWhere(floors, (k) => !!waterDays.get(k)?.cleared);
+  const stepsNow = steps.enabled && steps.days.length > 0 ? stepsSummary(steps.days, settings.stepsFloor, floors, todayKey) : null;
+  const showFloors = !!pact || steps.enabled;
 
   // Direction in words, never colour (kit rule).
   const paceWord = cleared ? "Done for the day" : pace.delta >= 0 ? `▲ ${fmt(pace.delta, unit)} ahead` : `▼ ${fmt(Math.abs(pace.delta), unit)} behind`;
@@ -324,6 +346,8 @@ export default function Tracker() {
           </div>
 
           <div className="flex flex-col gap-4 lg:gap-6">
+            {pact && pactNow && <PactCard pact={pact} status={pactNow} vices={vices} />}
+
             <section className="ink-card lg:hidden">
               <div className="ink-card__head undo-anchor">
                 <span>Coffee-free streak</span>
@@ -347,6 +371,17 @@ export default function Tracker() {
                 </ul>
               )}
             </section>
+
+            {vices.map((v) => (
+              <ViceCard key={v.id} vice={v} slips={slips} now={now} undoBar={undoBar(`vice:${v.id}`)} onLogged={logSlip} onUpdate={updateSlip} onRemove={removeSlip} />
+            ))}
+
+            {showFloors && (
+              <FloorsCard
+                windowLabel={pact ? "since day 1" : "last 30 days"} water={waterTally} waterToday={fmt(total, unit)}
+                steps={stepsNow} stepsFloor={settings.stepsFloor} stepsState={!steps.enabled ? "off" : stepsNow ? "ok" : steps.unreachable ? "unreachable" : "ok"} now={now}
+              />
+            )}
 
             <section className="ink-card">
               <div className="ink-card__head">
@@ -414,7 +449,7 @@ export default function Tracker() {
   );
 }
 
-type UndoFrom = "log" | "refill" | "coffee";
+type UndoFrom = "log" | "refill" | "coffee" | `vice:${string}`;
 
 /**
  * "Logged 36 oz · Undo", floating next to the control that logged (its .undo-anchor parent). Out of

@@ -34,14 +34,14 @@ export function yesterdayAt(hhmm: string, now: Date): Date | null {
   return atOnDay(now, -1, hhmm);
 }
 
-export type Retime = { ok: true; entry: Entry } | { ok: false; error: string };
+export type Retime<T = Entry> = { ok: true; entry: T } | { ok: false; error: string };
 
 /**
  * The same entry (same id) finished at another time on its own day. It never moves to another day
  * and never into the future. A clock-change gap (02:30 on the spring-forward night) resolves to the
- * next real time on that same day. Saving the result is an upsert on the id.
+ * next real time on that same day. Saving the result is an upsert on the id. Works for a drink or a slip.
  */
-export function retime(entry: Entry, hhmm: string, now: Date): Retime {
+export function retime<T extends { at: string; untimed?: boolean }>(entry: T, hhmm: string, now: Date): Retime<T> {
   const day = new Date(entry.at);
   const at = atOnDay(day, 0, hhmm);
   if (!at) return { ok: false, error: "Pick a time" };
@@ -50,5 +50,5 @@ export function retime(entry: Entry, hhmm: string, now: Date): Retime {
   // A timed value clears the backfill flag: the row now has a real time.
   const { untimed: _untimed, ...rest } = entry;
   void _untimed;
-  return { ok: true, entry: { ...rest, at: at.toISOString() } };
+  return { ok: true, entry: { ...rest, at: at.toISOString() } as T };
 }

@@ -7,6 +7,29 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+### Added
+- **Vices.** Add something you are quitting in Settings (a name, chips such as "Beer" or "Wine", and a
+  "clean since" date). Each gets a card on Today: clean X of Y days and the current run, and a **Slip**
+  button that logs it with what it was, now or for yesterday. Undo, edit-a-time and offline sync work
+  as they do for drinks. Off until you add one; a fresh install shows none.
+- **A Pact.** A named challenge with a start date and a length (100 days by default) over any of your
+  vices and coffee. Its headline is one combined clean day, a day with none of them: "2 of 3 days
+  clean, so far (of 100)", with the run beside it and each quit's own hit-rate underneath. A slip
+  counts on the calendar day it happened; today is pending until it is over.
+- **Floors.** Beside the Pact: how often the water floor was met, and, when a steps source is set up,
+  today's steps "as of" their last sync and how often the steps floor was met (a day with no steps data
+  is left out and counted as "no data"). The steps source is an optional read-only database login
+  (`STEPS_DATABASE_URL`, see `.env.example`); without it there are no steps anywhere.
+- **History per vice**: run now and best, a calendar of slip days, by kind, by month, and every slip
+  with remove.
+- **Import slips kept by hand**: `scripts/import-slips.ts` reads a markdown file passed by path, dry
+  run first, and adds nothing on a second run.
+- Demo data for staging now includes demo vices, slips, a Pact and steps.
+
+### Changed
+- Database: migration `0005_slips.sql` adds a `slips` table. Nothing existing changes, so the previous
+  release still runs on the new schema.
+
 ## [1.8.2] — 2026-10-02
 
 Fixes only; nothing new on screen.

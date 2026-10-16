@@ -54,7 +54,8 @@ message and pull request is published.
 - `e2e/` the main-path browser test (`bun run e2e`; refuses any app without the STAGING bar)
 - `drizzle/` SQL migrations, applied by `scripts/migrate.ts`
 - `scripts/` `deploy.ps1`, `migrate.ts`, `seed-demo.ts`, `backup.ts`, `restore-check.ts`, `restore.ts`,
-  `ci-status.ts`, `release-notes.sh`
+  `ci-status.ts`, `release-notes.sh`, `import-slips.ts`
+- `docs/specs/` feature specs (`vices.md`: vices, the Pact and Floors)
 - `.github/workflows/` CI (`check`, `secrets`, `audit` on every pull request) and Release (a tag publishes
   the GitHub Release from CHANGELOG.md)
 

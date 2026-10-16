@@ -7,6 +7,18 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-10-16
+
+Vices, a Pact and Floors: track what you are quitting next to your water.
+
+### Upgrade notes
+- **Database:** the deploy applies migration `0005_slips.sql` (a new `slips` table). It only adds, so
+  rolling back to 1.8.2 still works.
+- **Optional steps source:** to show steps, create a read-only Postgres login that can read one view,
+  `daily_steps` (`day` date, `steps` integer, `synced_at` timestamptz), and set `LIVE_STEPS_DATABASE_URL`
+  (and, if you like, `STAGING_STEPS_DATABASE_URL`) in `.env`. Leave them empty and nothing about steps
+  appears. See `.env.example` and `docs/specs/vices.md`.
+
 ### Added
 - **Vices.** Add something you are quitting in Settings (a name, chips such as "Beer" or "Wine", and a
   "clean since" date). Each gets a card on Today: clean X of Y days and the current run, and a **Slip**
@@ -15,7 +27,8 @@ trailing `.0` (`v1.8` is 1.8.0).
 - **A Pact.** A named challenge with a start date and a length (100 days by default) over any of your
   vices and coffee. Its headline is one combined clean day, a day with none of them: "2 of 3 days
   clean, so far (of 100)", with the run beside it and each quit's own hit-rate underneath. A slip
-  counts on the calendar day it happened; today is pending until it is over.
+  counts on the calendar day it happened. Hit-rates count finished days only (today is pending), but a
+  slip today puts the run back to 0 straight away, on the vice's card and on the Pact.
 - **Floors.** Beside the Pact: how often the water floor was met, and, when a steps source is set up,
   today's steps "as of" their last sync and how often the steps floor was met (a day with no steps data
   is left out and counted as "no data"). The steps source is an optional read-only database login
@@ -29,6 +42,9 @@ trailing `.0` (`v1.8` is 1.8.0).
 ### Changed
 - Database: migration `0005_slips.sql` adds a `slips` table. Nothing existing changes, so the previous
   release still runs on the new schema.
+- CI's dependency audit: the lockfile is refreshed inside existing ranges (sharp, source-map-js), and one
+  reviewed exception is listed for braces GHSA-vfj7-8cjw-p6xm, which has no fixed release and reaches only
+  the lint tooling. It is dated, with a review by 2026-11-16 (#41).
 
 ## [1.8.2] — 2026-10-02
 
@@ -251,7 +267,8 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
-[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.8.2...HEAD
+[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/rrhinog/water-tracker/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/rrhinog/water-tracker/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/rrhinog/water-tracker/compare/v1.8...v1.8.1
 [1.8]: https://github.com/rrhinog/water-tracker/compare/v1.7.1...v1.8

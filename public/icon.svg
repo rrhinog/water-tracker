@@ -1,8 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <clipPath id="drop"><path d="M256 96c-64 96-128 168-128 240a128 128 0 0 0 256 0c0-72-64-144-128-240z"/></clipPath>
-  </defs>
-  <rect width="512" height="512" rx="96" fill="#0b3a5c"/>
-  <rect x="100" y="286" width="312" height="200" fill="#7cc7e8" clip-path="url(#drop)"/>
-  <path d="M256 96c-64 96-128 168-128 240a128 128 0 0 0 256 0c0-72-64-144-128-240z" fill="none" stroke="#7cc7e8" stroke-width="22" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><rect width="180" height="180" fill="#c9ebd8"/><g transform="translate(90 90) scale(1) translate(-90 -90)"><g transform="translate(0 9)"><rect x="24" y="118" width="132" height="17" rx="8.5" fill="#0f3b3a"/><circle cx="44" cy="94" r="13" fill="#d93a25"/><circle cx="73" cy="76" r="13" fill="#d93a25"/><circle cx="102" cy="58" r="13" fill="#d93a25"/><circle cx="131" cy="40" r="13" fill="#d93a25"/></g></g></svg>

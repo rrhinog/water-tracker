@@ -33,7 +33,7 @@ export default function Shell({ children, aside, offline }: { children: ReactNod
     <div className="flex min-h-full flex-1 flex-col lg:flex-row">
       <aside className="hidden lg:flex lg:w-60 lg:flex-none lg:flex-col" style={{ background: "var(--ink-white)", borderRight: "2px solid var(--ink-900)" }}>
         <div style={{ padding: "24px 24px 20px", background: "var(--ink-black)", color: "var(--ink-white)" }}>
-          <span style={{ font: "800 18px/1 var(--font-sans)", letterSpacing: "-0.03em", textTransform: "uppercase" }}>Water</span>
+          <span style={{ font: "800 18px/1 var(--font-sans)", letterSpacing: "-0.03em", textTransform: "uppercase" }}>Baseline</span>
           <span className="eyebrow" style={{ display: "block", marginTop: 6, color: "var(--ink-300)" }}>Self-hosted tracker</span>
         </div>
         <ul className="ink-list ink-list--nav" style={{ borderTop: 0 }}>

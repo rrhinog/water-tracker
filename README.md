@@ -5,7 +5,7 @@ Docker on your own machine, Postgres for data. Built one feature at a time as a 
 the process is documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 <p>
-  <img src="docs/screenshots/today-light.png" width="240" alt="Today on a phone, light mode: 67 oz of a 100 oz floor, pace 22 oz behind, bottle picker and slider">
+  <img src="docs/screenshots/today-light.png" width="240" alt="Today on a phone, light mode: 67 oz of a 100 oz floor, pace 53 oz behind, bottle picker and slider">
   <img src="docs/screenshots/today-dark.png" width="240" alt="Today on a phone, dark mode">
 </p>
 
@@ -33,7 +33,7 @@ What it does:
   taps land locally and sync, in order, when the server is reachable. A banner says what is waiting
   ("2 drinks waiting to sync"), and another offers "New version — tap to reload" after an update.
 
-<img src="docs/screenshots/desktop-light.png" width="720" alt="Desktop layout: sidebar navigation, today's total, bottle log, and today's drinks with durations">
+<img src="docs/screenshots/desktop-light.png" width="720" alt="Desktop layout: sidebar navigation, today's total, bottle log, the Floors card, and today's drinks with durations">
 
 Screenshots use generated demo data. Release notes: [CHANGELOG.md](CHANGELOG.md). Feature specs are in `docs/specs/`; the 2.0 change is
 [docs/specs/split.md](docs/specs/split.md).

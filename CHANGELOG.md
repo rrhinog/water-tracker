@@ -7,6 +7,17 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+### Changed
+- **The app is called Baseline**, with a new icon: a mint tile, a dark line and four red marks rising
+  above it. The installed app, the iPhone home-screen label and the browser tab read "Baseline"
+  (staging: "Baseline · Staging"); the sidebar and the History and Settings headings follow. Every
+  icon size, including an opaque 180 × 180 iPhone icon and a new `favicon.ico`, is drawn from
+  `scripts/icons.mjs`.
+
+### Upgrade notes
+- An icon already on a phone's Home Screen keeps its old picture and name: remove it and add the app
+  again to get the new ones.
+
 ## [1.9.1] — 2026-11-13
 
 Security updates only; nothing new on screen.

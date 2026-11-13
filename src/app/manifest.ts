@@ -10,7 +10,7 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
     id: "/",
     name: names.name,
     short_name: names.shortName,
-    description: "Daily water intake tracker",
+    description: "Daily health tracker: water and steps",
     start_url: "/",
     scope: "/",
     display: "standalone",

@@ -1,17 +1,14 @@
 // Browser-only persistence (localStorage). Roadmap item 6 replaces this with Postgres.
 import { DEFAULT_SETTINGS, normalizeSettings, type Settings } from "./settings";
 import { DEFAULT_DISPLAY, DISPLAY_KEY, parseDisplay, type DisplayStep } from "./display";
-import type { CoffeeEntry } from "./coffee";
 import type { Entry } from "./log";
-import type { Slip, StepsDay } from "./vices";
+import type { StepsDay } from "./floors";
 import type { PaceMode } from "./pace";
 
 const ENTRIES_KEY = "water.entries.v1";
 const BOTTLE_KEY = "water.bottle.v1";
 const PACE_KEY = "water.pace.v1";
-const COFFEE_KEY = "water.coffee.v1";
 const SETTINGS_KEY = "water.settings.v1";
-const SLIPS_KEY = "water.slips.v1";
 const STEPS_KEY = "water.steps.v1";
 
 function canStore(): boolean {
@@ -70,44 +67,6 @@ export function savePaceMode(mode: PaceMode): void {
   if (!canStore()) return;
   try {
     window.localStorage.setItem(PACE_KEY, mode);
-  } catch {
-    // ignore
-  }
-}
-
-export function loadCoffee(): CoffeeEntry[] {
-  if (!canStore()) return [];
-  try {
-    const raw = window.localStorage.getItem(COFFEE_KEY);
-    return raw ? (JSON.parse(raw) as CoffeeEntry[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveCoffee(entries: readonly CoffeeEntry[]): void {
-  if (!canStore()) return;
-  try {
-    window.localStorage.setItem(COFFEE_KEY, JSON.stringify(entries));
-  } catch {
-    // ignore
-  }
-}
-
-export function loadSlips(): Slip[] {
-  if (!canStore()) return [];
-  try {
-    const raw = window.localStorage.getItem(SLIPS_KEY);
-    return raw ? (JSON.parse(raw) as Slip[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveSlips(slips: readonly Slip[]): void {
-  if (!canStore()) return;
-  try {
-    window.localStorage.setItem(SLIPS_KEY, JSON.stringify(slips));
   } catch {
     // ignore
   }

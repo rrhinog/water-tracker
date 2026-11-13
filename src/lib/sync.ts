@@ -8,9 +8,8 @@
 // Every write goes through the queue, even when it is empty: sending a new change ahead of older
 // queued ones would let an Undo reach the server before the drink it removes, and the drink would
 // come back when the queue caught up.
-import type { CoffeeEntry } from "./coffee";
 import type { Entry } from "./log";
-import type { Slip } from "./vices";
+import type { RetiredCoffee, RetiredSlip } from "./retired";
 import { normalizeSettings, type Settings } from "./settings";
 
 const PENDING_KEY = "water.pending.v1";
@@ -20,12 +19,15 @@ function timeout(ms: number): AbortSignal | undefined {
   return typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(ms) : undefined;
 }
 
+// The coffee and slip kinds are no longer created (2.0 doesn't log either), but a phone may still hold
+// some, queued under 1.x while offline. They are sent to their old routes, which still accept them,
+// until 2.1 (src/lib/retired.ts, docs/specs/split.md).
 export type Op =
   | { kind: "upsert-entry"; entry: Entry }
   | { kind: "delete-entry"; id: string }
-  | { kind: "upsert-coffee"; entry: CoffeeEntry }
+  | { kind: "upsert-coffee"; entry: RetiredCoffee }
   | { kind: "delete-coffee"; id: string }
-  | { kind: "upsert-slip"; entry: Slip }
+  | { kind: "upsert-slip"; entry: RetiredSlip }
   | { kind: "delete-slip"; id: string };
 
 function canStore(): boolean {
@@ -51,19 +53,32 @@ function savePending(ops: Op[]): void {
   }
 }
 
+const JSON_HEADERS = { "content-type": "application/json" };
+
+/**
+ * Where a queued change goes. Every kind is named here, the old coffee and slip kinds included: a kind
+ * missing from this list would fall through to the last branch and be sent as a slip delete.
+ */
+export function routeFor(op: Op): [string, RequestInit] {
+  switch (op.kind) {
+    case "upsert-entry":
+      return ["/api/entries", { method: "POST", body: JSON.stringify(op.entry), headers: JSON_HEADERS }];
+    case "delete-entry":
+      return [`/api/entries/${encodeURIComponent(op.id)}`, { method: "DELETE" }];
+    case "upsert-coffee":
+      return ["/api/coffee", { method: "POST", body: JSON.stringify(op.entry), headers: JSON_HEADERS }];
+    case "delete-coffee":
+      return [`/api/coffee/${encodeURIComponent(op.id)}`, { method: "DELETE" }];
+    case "upsert-slip":
+      return ["/api/slips", { method: "POST", body: JSON.stringify(op.entry), headers: JSON_HEADERS }];
+    default:
+      // "delete-slip", and (as in 1.x) anything unrecognised.
+      return [`/api/slips/${encodeURIComponent((op as { id: string }).id)}`, { method: "DELETE" }];
+  }
+}
+
 async function send(op: Op): Promise<void> {
-  const [url, init]: [string, RequestInit] =
-    op.kind === "upsert-entry"
-      ? ["/api/entries", { method: "POST", body: JSON.stringify(op.entry), headers: { "content-type": "application/json" } }]
-      : op.kind === "delete-entry"
-        ? [`/api/entries/${encodeURIComponent(op.id)}`, { method: "DELETE" }]
-        : op.kind === "upsert-coffee"
-          ? ["/api/coffee", { method: "POST", body: JSON.stringify(op.entry), headers: { "content-type": "application/json" } }]
-          : op.kind === "delete-coffee"
-            ? [`/api/coffee/${encodeURIComponent(op.id)}`, { method: "DELETE" }]
-            : op.kind === "upsert-slip"
-              ? ["/api/slips", { method: "POST", body: JSON.stringify(op.entry), headers: { "content-type": "application/json" } }]
-              : [`/api/slips/${encodeURIComponent(op.id)}`, { method: "DELETE" }];
+  const [url, init] = routeFor(op);
   // A server that can't be reached can hang rather than refuse; give up so the queue can retry.
   const res = await fetch(url, { ...init, signal: timeout(SEND_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`${op.kind} failed: ${res.status}`);
@@ -106,18 +121,6 @@ export async function fetchEntries(): Promise<Entry[]> {
   const res = await fetch("/api/entries", { cache: "no-store" });
   if (!res.ok) throw new Error(`entries ${res.status}`);
   return (await res.json()) as Entry[];
-}
-
-export async function fetchCoffee(): Promise<CoffeeEntry[]> {
-  const res = await fetch("/api/coffee", { cache: "no-store" });
-  if (!res.ok) throw new Error(`coffee ${res.status}`);
-  return (await res.json()) as CoffeeEntry[];
-}
-
-export async function fetchSlips(): Promise<Slip[]> {
-  const res = await fetch("/api/slips", { cache: "no-store" });
-  if (!res.ok) throw new Error(`slips ${res.status}`);
-  return (await res.json()) as Slip[];
 }
 
 export async function fetchSettings(): Promise<Settings> {

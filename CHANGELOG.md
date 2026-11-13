@@ -7,6 +7,34 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+The app becomes water and steps only. Details: `docs/specs/split.md`.
+
+### Upgrade notes
+- **No new migration.** Nothing is dropped from the database in 2.0, so rolling back to 1.9.1 still
+  works and still shows your coffee, vices and Pact.
+- **Export first if you want a copy.** The coffee and slip tables stay in place, but nothing in the app
+  reads them any more. To keep a copy anyway:
+  `pg_dump -h 127.0.0.1 -U <your_user> --table=coffee_entries --table=slips <your_database> > coffee-and-slips.sql`
+- **Floors window.** An install that had a Pact starts with the Pact's start date in the new
+  "Floors count from" setting, so the Floors numbers do not move.
+
+### Removed
+- **Coffee and vices from every screen.** The coffee card and lists, the desktop sidebar coffee block,
+  the coffee-free streak, History's coffee section, the vice cards, the Slip button and History per
+  vice are gone, along with the Pact card and Settings' Flavours, Vices and Pact cards.
+- **Code and files.** The coffee and vice logic, `scripts/import-slips.ts`, `docs/specs/vices.md` and
+  the screenshot `docs/screenshots/coffee-dark.png`.
+
+### Changed
+- **Water and steps only.** Demo data for staging is now water and steps only.
+- **Floors count from a date you choose.** Settings has an optional "Floors count from" date: with one,
+  Floors run from that date to yesterday; without one, over the last 30 days. The Steps floor field moves
+  from the Pact card into a new Floors card in Settings. Floors and steps logic now lives in `src/lib/floors.ts`.
+- **Kept until a later release (expand, then contract).** The `coffee_entries` and `slips` tables, the
+  `/api/coffee` and `/api/slips` routes and the offline queue's older kinds of change still work, so a
+  change a phone queued under 1.9.x still lands. The stored settings fields `flavours`, `vices` and `pact`
+  stay untouched, and saving Settings carries them through.
+
 ## [1.9.1] — 2026-11-13
 
 Security updates only; nothing new on screen.

@@ -4,7 +4,7 @@
 import { DEFAULT_ACCENT, accentReadable } from "./color";
 import { dayKey } from "./log";
 import type { PaceMode } from "./pace";
-import { COFFEE_QUIT } from "./vices";
+import { RETIRED_SETTINGS_KEYS } from "./retired";
 
 export interface Bottle {
   id: string;
@@ -13,27 +13,6 @@ export interface Bottle {
 }
 
 export type Unit = "oz" | "ml";
-
-/** Something to quit, logged as slips (src/lib/vices.ts). */
-export interface Vice {
-  /** Stable id stored on every slip; renaming the vice keeps it. */
-  id: string;
-  name: string;
-  /** What a slip can be ("Beer", "Wine"), offered as chips. Order = chip order. */
-  chips: string[];
-  /** YYYY-MM-DD the clean record starts; without it, the first slip starts it. */
-  cleanSince?: string;
-}
-
-/** A time-boxed challenge over some quits: vice ids, and "coffee". */
-export interface Pact {
-  name: string;
-  /** YYYY-MM-DD, Day 1. */
-  start: string;
-  /** Length in days. */
-  days: number;
-  quits: string[];
-}
 
 export interface Settings {
   bottles: Bottle[];
@@ -45,13 +24,10 @@ export interface Settings {
   defaultPaceMode: PaceMode;
   /** The one accent colour (the kit's ink-signal), a #rrggbb that passes 4.5:1 under white. */
   accent: string;
-  /** Coffee flavours (Keurig pods, or "Bought out") offered when logging. Order = chip order. */
-  flavours: string[];
-  /** Off by default: a fresh install shows no vice cards. */
-  vices: Vice[];
-  pact: Pact | null;
   /** The daily steps floor, used only when a steps source is set up (STEPS_DATABASE_URL). */
   stepsFloor: number;
+  /** YYYY-MM-DD the Floors count from; null = the last 30 days (src/lib/floors.ts). */
+  floorsFrom: string | null;
 }
 
 /** First-run defaults (the author's setup). Change them in Settings, not here. */
@@ -67,10 +43,8 @@ export const DEFAULT_SETTINGS: Settings = {
   paceEndH: 21,
   defaultPaceMode: "history",
   accent: DEFAULT_ACCENT,
-  flavours: ["BRCC Spirit of '76", "Starbucks Vanilla", "Starbucks French Roast", "Bought out"],
-  vices: [],
-  pact: null,
   stepsFloor: 10000,
+  floorsFrom: null,
 };
 
 /** A real calendar day written YYYY-MM-DD (not 2026-02-30). */
@@ -80,41 +54,16 @@ export function isIsoDay(s: unknown): s is string {
   return dayKey(new Date(y, m - 1, d)) === s;
 }
 
-/** Trimmed, non-empty, unique strings, capped: the rule for flavours and for a vice's chips. */
-function cleanList(raw: unknown, cap = 24): string[] | null {
-  if (!Array.isArray(raw)) return null;
-  return [...new Set((raw as unknown[]).filter((f): f is string => typeof f === "string").map((f) => f.trim()).filter(Boolean))].slice(0, cap);
-}
-
-function normalizeVices(raw: unknown): Vice[] {
-  if (!Array.isArray(raw)) return [];
-  const out: Vice[] = [];
-  for (const item of raw as unknown[]) {
-    if (!item || typeof item !== "object") continue;
-    const v = item as Partial<Record<keyof Vice, unknown>>;
-    const id = typeof v.id === "string" ? v.id.trim() : "";
-    if (!id || id === COFFEE_QUIT || out.some((x) => x.id === id)) continue;
-    const name = typeof v.name === "string" && v.name.trim() ? v.name.trim() : id;
-    const vice: Vice = { id, name, chips: cleanList(v.chips) ?? [] };
-    if (isIsoDay(v.cleanSince)) vice.cleanSince = v.cleanSince;
-    out.push(vice);
-    if (out.length >= 12) break;
-  }
-  return out;
-}
-
-function normalizePact(raw: unknown, vices: readonly Vice[]): Pact | null {
-  if (!raw || typeof raw !== "object") return null;
-  const p = raw as Partial<Record<keyof Pact, unknown>>;
-  if (!isIsoDay(p.start)) return null;
-  const known = new Set([COFFEE_QUIT, ...vices.map((v) => v.id)]);
-  const quits = Array.isArray(p.quits) ? [...new Set((p.quits as unknown[]).filter((q): q is string => typeof q === "string" && known.has(q)))] : [];
-  return {
-    name: typeof p.name === "string" && p.name.trim() ? p.name.trim() : "Pact",
-    start: p.start,
-    days: typeof p.days === "number" && p.days >= 1 ? Math.min(3650, Math.round(p.days)) : 100,
-    quits,
-  };
+/**
+ * The Floors' count-from date. A saved one wins, and a cleared one (null) stays cleared. A row saved
+ * by 1.x has none: there the Floors counted from its Pact's Day 1, so that day is kept as the start
+ * and the numbers on screen don't move on upgrade (docs/specs/split.md).
+ */
+function normalizeFloorsFrom(r: Record<string, unknown>): string | null {
+  if (isIsoDay(r.floorsFrom)) return r.floorsFrom;
+  if ("floorsFrom" in r) return null;
+  const pact = r.pact as { start?: unknown } | null | undefined;
+  return pact && typeof pact === "object" && isIsoDay(pact.start) ? pact.start : null;
 }
 
 export const ML_PER_OZ = 29.5735;
@@ -156,11 +105,22 @@ export function normalizeSettings(raw: unknown): Settings {
   }
   const defaultPaceMode: PaceMode = r.defaultPaceMode === "even" ? "even" : "history";
   const accent = typeof r.accent === "string" && accentReadable(r.accent.toLowerCase()) ? r.accent.toLowerCase() : DEFAULT_ACCENT;
-  const flavours = cleanList(r.flavours) ?? DEFAULT_SETTINGS.flavours;
-  const vices = normalizeVices(r.vices);
-  const pact = normalizePact(r.pact, vices);
   const stepsFloor = typeof r.stepsFloor === "number" && r.stepsFloor >= 1 ? Math.round(r.stepsFloor) : DEFAULT_SETTINGS.stepsFloor;
-  return { bottles: bottles.length ? bottles : DEFAULT_SETTINGS.bottles, floorOz, unit, paceStartH, paceEndH, defaultPaceMode, accent, flavours, vices, pact, stepsFloor };
+  const floorsFrom = normalizeFloorsFrom(r as Record<string, unknown>);
+  return { bottles: bottles.length ? bottles : DEFAULT_SETTINGS.bottles, floorOz, unit, paceStartH, paceEndH, defaultPaceMode, accent, stepsFloor, floorsFrom };
+}
+
+/**
+ * The settings row to store when Settings is saved: the body, normalized, plus the fields 1.x kept in
+ * the same row (flavours, vices, pact) copied from what is stored now, never from the body. Save
+ * replaces the whole row, so without this a save in 2.0 would drop them and a rollback to 1.9.1 would
+ * come back without them. A key the stored row doesn't have stays absent. Removed in 2.1.
+ */
+export function settingsForSave(body: unknown, stored: unknown): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...normalizeSettings(body) };
+  const old = stored && typeof stored === "object" && !Array.isArray(stored) ? (stored as Record<string, unknown>) : {};
+  for (const k of RETIRED_SETTINGS_KEYS) if (Object.hasOwn(old, k)) next[k] = old[k];
+  return next;
 }
 
 /** A stable id for a new bottle from its name (falls back to a random suffix on collision). */
@@ -170,30 +130,12 @@ export function bottleIdFor(name: string, existing: readonly Bottle[]): string {
   return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-/** What blocks Save in the Vices and Pact cards, in words; empty when the draft is fine. */
-export function viceProblems(s: Pick<Settings, "vices" | "pact" | "stepsFloor">): string[] {
+/** What blocks Save in the Floors card, in words; empty when the draft is fine. */
+export function floorsProblems(s: Pick<Settings, "stepsFloor" | "floorsFrom">): string[] {
   const out: string[] = [];
-  const names = s.vices.map((v) => v.name.trim().toLowerCase());
-  if (names.some((n) => !n)) out.push("Every vice needs a name");
-  else if (new Set(names).size !== names.length) out.push("Vice names must be unique");
-  if (s.vices.some((v) => v.chips.some((c) => !c.trim()))) out.push("Every chip needs a name");
-  if (s.vices.some((v) => new Set(v.chips.map((c) => c.trim())).size !== v.chips.length)) out.push("A vice's chips must be unique");
-  if (s.vices.some((v) => v.cleanSince !== undefined && !isIsoDay(v.cleanSince))) out.push("Pick a real clean-since date");
-  if (s.pact) {
-    if (!s.pact.name.trim()) out.push("The Pact needs a name");
-    if (!isIsoDay(s.pact.start)) out.push("Pick the Pact's start date");
-    if (!Number.isInteger(s.pact.days) || s.pact.days < 1 || s.pact.days > 3650) out.push("The Pact lasts 1 to 3650 days");
-    if (s.pact.quits.length === 0) out.push("The Pact needs at least one quit");
-  }
   if (!(s.stepsFloor >= 1)) out.push("Steps floor must be at least 1");
+  if (s.floorsFrom !== null && !isIsoDay(s.floorsFrom)) out.push("Pick a real count-from date");
   return out;
-}
-
-/** A stable id for a new vice from its name. Never an id in use, and never "coffee" (the Pact's coffee quit). */
-export function viceIdFor(name: string, existing: readonly { id: string }[]): string {
-  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "vice";
-  if (base !== COFFEE_QUIT && !existing.some((v) => v.id === base)) return base;
-  return `${base}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export function bottleById(bottles: readonly Bottle[], id: string): Bottle | undefined {

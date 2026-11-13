@@ -15,22 +15,16 @@ describe("undo window", () => {
   });
 
   it("keeps what it will remove", () => {
-    expect(makeUndo("coffee", "c1", "Logged a coffee", 0)).toEqual({ kind: "coffee", id: "c1", message: "Logged a coffee", until: UNDO_MS });
+    expect(makeUndo("entry", "w1", "Logged 36 oz", 0)).toEqual({ kind: "entry", id: "w1", message: "Logged 36 oz", until: UNDO_MS });
   });
 });
 
 describe("undoMessage", () => {
-  it("says what was logged, in Ryan's words", () => {
+  it("says what was logged, in plain words", () => {
     expect(undoMessage({ amount: "36 oz" })).toBe("Logged 36 oz");
-    expect(undoMessage("coffee")).toBe("Logged a coffee");
   });
 
   it("says when it went to yesterday", () => {
     expect(undoMessage({ amount: "40 oz", yesterday: true })).toBe("Logged 40 oz for yesterday");
-  });
-
-  it("names a slip's chip, and yesterday", () => {
-    expect(undoMessage({ slip: "Beer" })).toBe("Logged a slip: Beer");
-    expect(undoMessage({ slip: null, yesterday: true })).toBe("Logged a slip for yesterday");
   });
 });

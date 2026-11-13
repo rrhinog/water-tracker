@@ -22,7 +22,7 @@ const TABS = [
 
 /**
  * Page frame in Ink Kit terms. Phone: content over a bottom tab bar. Desktop (lg+): a
- * sidebar with the nav and an optional extra block (the coffee streak on Today). Banners (offline,
+ * sidebar with the nav and an optional extra block below it. Banners (offline,
  * new version) sit at the top of the content column on both.
  */
 export default function Shell({ children, aside, offline }: { children: ReactNode; aside?: ReactNode; offline?: string | null }) {

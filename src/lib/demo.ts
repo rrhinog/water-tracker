@@ -3,31 +3,23 @@
 // Written to a database only by scripts/seed-demo.ts, which refuses anything but a *_staging or
 // *_demo database (see src/lib/dbtarget.ts).
 import type { Fraction } from "./bottles";
-import type { CoffeeEntry } from "./coffee";
 import { STARTED } from "./duration";
 import { dayKey, ouncesFor, type Entry } from "./log";
-import { COFFEE_QUIT, type Slip, type StepsDay } from "./vices";
-import { DEFAULT_SETTINGS, type Settings, type Vice } from "./settings";
+import type { StepsDay } from "./floors";
+import { DEFAULT_SETTINGS, type Settings } from "./settings";
 
 export const DEMO_DAYS = 75;
 export const DEMO_SEED = 1;
 
 export interface DemoData {
   water: Entry[];
-  coffee: CoffeeEntry[];
-  slips: Slip[];
   /** For a staging steps table (scripts/seed-demo.ts); the app reads it only through STEPS_DATABASE_URL. */
   steps: StepsDay[];
   settings: Settings;
 }
 
-/** Made-up vices for staging and screenshots, never anyone's real list. */
-export const DEMO_VICES: readonly Omit<Vice, "cleanSince">[] = [
-  { id: "alcohol", name: "Alcohol", chips: ["Beer", "Wine", "Cocktail"] },
-  { id: "sweets", name: "Sweets", chips: ["Candy", "Dessert", "Soda"] },
-];
-/** The demo Pact started this many days before today. */
-export const DEMO_PACT_DAYS_IN = 20;
+/** The demo Floors count from this many days before today. */
+export const DEMO_FLOORS_DAYS_IN = 20;
 
 /** mulberry32: a tiny seeded PRNG, uniform in [0, 1). Not for anything secret. */
 export function seededRandom(seed: number): () => number {
@@ -62,31 +54,19 @@ const FRACTION_WEIGHTS: { value: Fraction; weight: number }[] = [
 ];
 
 /**
- * `days` days of water, coffee, slips and steps ending today (local time), plus DEFAULT_SETTINGS with
- * the demo vices and a demo Pact switched on. Today always has a "Started bottle" marker; rows later
- * than `now` are left out. The four days before today are coffee-free and the three before today
- * slip-free, so the streak and run cards have something to show. Slips and steps draw from their own
- * random stream, so adding them left the water and coffee rows unchanged.
+ * `days` days of water and steps ending today (local time), plus DEFAULT_SETTINGS with a demo
+ * count-from date for the Floors. Today always has a "Started bottle" marker; rows later than `now`
+ * are left out. Steps draw from their own random stream.
  */
 export function generateDemoData(now: Date, opts: { days?: number; seed?: number } = {}): DemoData {
   const days = opts.days ?? DEMO_DAYS;
   const rand = seededRandom(opts.seed ?? DEMO_SEED);
   const settings: Settings = structuredClone(DEFAULT_SETTINGS);
-  const firstDay = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)));
-  settings.vices = DEMO_VICES.map((v) => ({ ...v, chips: [...v.chips], cleanSince: firstDay }));
-  settings.pact = {
-    name: "100-day Pact",
-    start: dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - DEMO_PACT_DAYS_IN)),
-    days: 100,
-    quits: [...DEMO_VICES.map((v) => v.id), COFFEE_QUIT],
-  };
+  settings.floorsFrom = dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - DEMO_FLOORS_DAYS_IN));
   const vrand = seededRandom((opts.seed ?? DEMO_SEED) + 1000);
-  const slips: Slip[] = [];
   const steps: StepsDay[] = [];
   const bottles = settings.bottles.map((b, i) => ({ value: b, weight: [5, 3, 2][i] ?? 1 }));
-  const flavours = settings.flavours.map((f, i) => ({ value: f, weight: [4, 3, 2][i] ?? 1 }));
   const water: Entry[] = [];
-  const coffee: CoffeeEntry[] = [];
 
   for (let back = days - 1; back >= 0; back--) {
     const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
@@ -118,21 +98,6 @@ export function generateDemoData(now: Date, opts: { days?: number; seed?: number
       rows.push({ id: id(), at: at(23 * 60 + 59).toISOString(), bottleId: "other", fraction: 1, oz: 16, untimed: true });
     }
 
-    // Coffee: target zero, so most days have none.
-    const cups = back >= 1 && back <= 4 ? 0 : rand() < 0.35 ? (rand() < 0.12 ? 2 : 1) : 0;
-    let c = between(rand, 7 * 60 + 30, 10 * 60);
-    for (let i = 0; i < cups; i++) {
-      const finished = c + between(rand, 25, 140);
-      coffee.push({ id: `demo-c-${key}-${i}`, at: at(c).toISOString(), finishedAt: at(finished).toISOString(), flavour: pick(rand, flavours) });
-      c = finished + between(rand, 120, 300);
-    }
-
-    // Slips: evenings, now and then; none in the three days before today.
-    for (const [i, v] of DEMO_VICES.entries()) {
-      const p = [0.12, 0.2][i] ?? 0.1;
-      if (back >= 1 && back <= 3) continue;
-      if (vrand() < p) slips.push({ id: `demo-s-${key}-${v.id}`, vice: v.id, at: at(between(vrand, 18 * 60, 23 * 60)).toISOString(), kind: pick(vrand, v.chips.map((c) => ({ value: c, weight: 1 }))) });
-    }
     // Steps: synced overnight for past days; today as of the last of three daytime syncs.
     const dailySteps = between(vrand, 4000, 15000);
     if (!isToday) {
@@ -151,13 +116,5 @@ export function generateDemoData(now: Date, opts: { days?: number; seed?: number
     water.push(...rows.filter((r) => !isToday || r.at <= cutoff).sort((a, b) => a.at.localeCompare(b.at)));
   }
 
-  // A coffee poured before now but "finished" after it is still open.
-  const cutoff = now.toISOString();
-  return {
-    water,
-    slips: slips.filter((s) => s.at <= cutoff),
-    steps,
-    coffee: coffee.filter((c) => c.at <= cutoff).map((c) => (c.finishedAt && c.finishedAt > cutoff ? { id: c.id, at: c.at, flavour: c.flavour } : c)),
-    settings,
-  };
+  return { water, steps, settings };
 }

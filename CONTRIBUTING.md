@@ -37,7 +37,7 @@ Security problems: privately, as [SECURITY.md](SECURITY.md) says, not as an issu
 - **Staging never uses live's database.** Try a branch on staging against demo data; `bun run dev` should
   point at staging too.
 - **Offline first.** Anything that logs a drink must work with the server unreachable and sync later.
-- Everyday choices (bottles, daily floor, units, pace window, flavours, colour) live in the app's Settings.
+- Everyday choices (bottles, daily floor, units, pace window, Floors, colour) live in the app's Settings.
   The defaults a fresh install starts with are `DEFAULT_SETTINGS` in `src/lib/settings.ts`.
 - **Screenshots use demo data only**, never a real person's log.
 

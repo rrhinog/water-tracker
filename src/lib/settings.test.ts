@@ -141,6 +141,15 @@ describe("a Settings save carries the 1.x fields through untouched", () => {
     expect(Object.hasOwn(settingsForSave({ vices: [{ id: "a" }] }, undefined), "vices")).toBe(false);
   });
 
+  it("a 1.9.1 tab still open after the update can't reset a count-from date chosen in 2.0", () => {
+    const stored2x = { ...stored1x, floorsFrom: "2026-03-08" };
+    const fromOldTab = { ...stored1x, floorOz: 90 }; // 1.9.1 sends its whole Settings, with no floorsFrom
+    const saved = settingsForSave(fromOldTab, stored2x);
+    expect(saved.floorsFrom).toBe("2026-03-08");
+    expect(saved.floorOz).toBe(90);
+    expect(settingsForSave({ ...fromOldTab, floorsFrom: null }, stored2x).floorsFrom).toBeNull(); // 2.0 clearing it still works
+  });
+
   it("several saves in a row still carry them", () => {
     let row: Record<string, unknown> = stored1x;
     for (const floorOz of [90, 110, 100]) row = settingsForSave({ ...normalizeSettings(row), floorOz }, row);

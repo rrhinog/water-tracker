@@ -140,7 +140,7 @@ export default function Settings() {
                 <input type="number" inputMode="numeric" min={1} value={draft.stepsFloor} onChange={(e) => patch({ stepsFloor: Number(e.target.value) })} className="ink-input mono w-full" aria-label="Steps floor" />
               </label>
             </div>
-            <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>The Floors card on Today counts the days you met each floor, from this date to yesterday. Clear the date to count the last 30 days. Steps show only when a steps source is set up.</p>
+            <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>The Floors card on Today counts the days you met each floor, from this date to yesterday. Clear the date to count the last 30 days; the card then shows only when a steps source is set up, as do steps.</p>
           </div>
         </section>
 

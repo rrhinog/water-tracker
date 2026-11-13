@@ -115,11 +115,16 @@ export function normalizeSettings(raw: unknown): Settings {
  * the same row (flavours, vices, pact) copied from what is stored now, never from the body. Save
  * replaces the whole row, so without this a save in 2.0 would drop them and a rollback to 1.9.1 would
  * come back without them. A key the stored row doesn't have stays absent. Removed in 2.1.
+ *
+ * A body with no floorsFrom at all (a 1.9.1 tab still open after the update) keeps the stored date,
+ * so it can't reset one chosen in 2.0.
  */
 export function settingsForSave(body: unknown, stored: unknown): Record<string, unknown> {
   const next: Record<string, unknown> = { ...normalizeSettings(body) };
-  const old = stored && typeof stored === "object" && !Array.isArray(stored) ? (stored as Record<string, unknown>) : {};
+  const asObject = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
+  const old = asObject(stored);
   for (const k of RETIRED_SETTINGS_KEYS) if (Object.hasOwn(old, k)) next[k] = old[k];
+  if (!Object.hasOwn(asObject(body), "floorsFrom") && Object.hasOwn(old, "floorsFrom")) next.floorsFrom = normalizeSettings(old).floorsFrom;
   return next;
 }
 

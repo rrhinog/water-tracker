@@ -57,7 +57,17 @@ afterEach(() => {
 
 // Words only 1.x's coffee, vice and Pact screens used, and the made-up data above.
 // Whole words: "device" (the Display card) is fine, "vice" is not.
-const RETIRED_WORDS = /(coffees?|coffee-free|slips?|vices?|pact|flavours?|sweets|candy)|clean since|demo roast|bought out/i;
+const RETIRED_WORDS = /\b(coffees?|coffee-free|slips?|vices?|pact|flavours?|sweets|candy)\b|clean since|demo roast|bought out/i;
+/** Every piece of text on the page on its own line, plus labels: textContent would run "Vices" into "This device". */
+function screenText(): string {
+  const parts: string[] = [];
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) parts.push(n.textContent ?? "");
+  for (const el of document.body.querySelectorAll("[aria-label],[title],[placeholder]")) {
+    for (const a of ["aria-label", "title", "placeholder"]) if (el.getAttribute(a)) parts.push(el.getAttribute(a)!);
+  }
+  return parts.join("\n");
+}
 
 describe("2.0 shows no coffee, vices or Pact, even when the server still has them", () => {
   it("Today", async () => {
@@ -65,7 +75,7 @@ describe("2.0 shows no coffee, vices or Pact, even when the server still has the
     render(<Tracker />);
     await screen.findByRole("region", { name: "Floors" });
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/settings", expect.anything()));
-    expect(document.body.textContent).not.toMatch(RETIRED_WORDS);
+    expect(screenText()).not.toMatch(RETIRED_WORDS);
     expect(screen.queryByRole("button", { name: /coffee|slip/i })).toBeNull();
   });
 
@@ -73,7 +83,7 @@ describe("2.0 shows no coffee, vices or Pact, even when the server still has the
     const { fetch } = server();
     render(<History />);
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/settings", expect.anything()));
-    expect(document.body.textContent).not.toMatch(RETIRED_WORDS);
+    expect(screenText()).not.toMatch(RETIRED_WORDS);
   });
 
   it("Settings", async () => {
@@ -81,7 +91,7 @@ describe("2.0 shows no coffee, vices or Pact, even when the server still has the
     render(<Settings />);
     await waitFor(() => expect(fetch).toHaveBeenCalledWith("/api/settings", expect.anything()));
     await screen.findByRole("region", { name: "Floors" });
-    expect(document.body.textContent).not.toMatch(RETIRED_WORDS);
+    expect(screenText()).not.toMatch(RETIRED_WORDS);
     expect(screen.queryByRole("region", { name: /vices|pact/i })).toBeNull();
   });
 

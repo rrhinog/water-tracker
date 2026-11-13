@@ -90,7 +90,7 @@ export default function Settings() {
     <Shell offline={offline}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 pb-24 lg:max-w-3xl lg:gap-6 lg:p-10 lg:pb-28">
         <header className="flex flex-col gap-1">
-          <span className="eyebrow">Water</span>
+          <span className="eyebrow">Baseline</span>
           <h1 style={{ margin: 0, font: "800 34px/1 var(--font-sans)", letterSpacing: "-0.03em" }}>Settings</h1>
         </header>
 

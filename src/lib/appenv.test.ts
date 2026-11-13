@@ -14,8 +14,8 @@ describe("appEnv", () => {
 });
 
 describe("appNames", () => {
-  it("keeps live's names as they were", () => {
-    expect(appNames("live")).toEqual({ name: "Water Tracker", shortName: "Water", title: "Water" });
+  it("names live Baseline: the install, the home-screen label and the tab", () => {
+    expect(appNames("live")).toEqual({ name: "Baseline", shortName: "Baseline", title: "Baseline" });
   });
 
   it("labels the staging install and tab", () => {

@@ -7,6 +7,16 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+## [1.9.1] — 2026-11-13
+
+Security updates only; nothing new on screen.
+
+### Changed
+- **Next.js 16.4.3** (from 16.3.8), for three advisories in versions 16.0.0 to 16.4.0:
+  GHSA-673q-mjm6-r5xr and GHSA-2464-fhr4-w9xw (critical) and GHSA-p3m5-59mp-jv5r (high) (#46).
+- Development tools only, so CI's dependency audit passes again: jsdom 30.1.3 (which brings undici
+  8.12.4), puppeteer-core 25.16.0, and, in the lockfile, zod 4.6.7 and vite 8.3.8 (#46).
+
 ## [1.9.0] — 2026-10-16
 
 Vices, a Pact and Floors: track what you are quitting next to your water.
@@ -267,7 +277,8 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
-[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/rrhinog/water-tracker/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/rrhinog/water-tracker/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/rrhinog/water-tracker/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/rrhinog/water-tracker/compare/v1.8...v1.8.1

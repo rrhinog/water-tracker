@@ -73,7 +73,7 @@ export default function History() {
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 lg:max-w-5xl lg:gap-6 lg:p-10">
         <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
           <div className="flex flex-col gap-1">
-            <span className="eyebrow">Water</span>
+            <span className="eyebrow">Baseline</span>
             <h1 style={{ margin: 0, font: "800 34px/1 var(--font-sans)", letterSpacing: "-0.03em" }}>History</h1>
           </div>
           <div className="ml-auto flex gap-1.5" role="group" aria-label="Period">

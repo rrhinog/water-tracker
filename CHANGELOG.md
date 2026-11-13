@@ -7,12 +7,16 @@ trailing `.0` (`v1.8` is 1.8.0).
 
 ## [Unreleased]
 
+## [1.9.2] — 2026-11-13
+
+A new name and icon; nothing else changes.
+
 ### Changed
 - **The app is called Baseline**, with a new icon: a mint tile, a dark line and four red marks rising
   above it. The installed app, the iPhone home-screen label and the browser tab read "Baseline"
   (staging: "Baseline · Staging"); the sidebar and the History and Settings headings follow. Every
   icon size, including an opaque 180 × 180 iPhone icon and a new `favicon.ico`, is drawn from
-  `scripts/icons.mjs`.
+  `scripts/icons.mjs` (#49).
 
 ### Upgrade notes
 - An icon already on a phone's Home Screen keeps its old picture and name: remove it and add the app
@@ -288,7 +292,8 @@ First public release.
 
 Versions 0.0–0.10 were built privately before the public release and are summarised above.
 
-[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/rrhinog/water-tracker/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/rrhinog/water-tracker/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/rrhinog/water-tracker/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/rrhinog/water-tracker/compare/v1.8.2...v1.9.0
 [1.8.2]: https://github.com/rrhinog/water-tracker/compare/v1.8.1...v1.8.2

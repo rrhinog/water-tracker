@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { title } = appNames(await currentEnv());
   return {
     title,
-    description: "Daily water intake tracker",
+    description: "Daily health tracker: water and steps",
     manifest: "/manifest.webmanifest",
     appleWebApp: { capable: true, title, statusBarStyle: "default" },
   };

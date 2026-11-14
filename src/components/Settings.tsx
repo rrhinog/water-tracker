@@ -7,8 +7,7 @@ import { ACCENT_SWATCHES, THEMES, accentReadable, contrast, isHex, isTheme } fro
 import { formatHour } from "@/lib/pace";
 import { loadDisplay, saveDisplay } from "@/lib/storage";
 import { dayKey } from "@/lib/log";
-import { bottleIdFor, fromUnit, normalizeSettings, toUnit, unitLabel, viceIdFor, viceProblems, type Bottle, type Settings as SettingsT, type Unit, type Vice } from "@/lib/settings";
-import { COFFEE_QUIT } from "@/lib/vices";
+import { bottleIdFor, floorsProblems, fromUnit, normalizeSettings, toUnit, unitLabel, type Bottle, type Settings as SettingsT, type Unit } from "@/lib/settings";
 import { useSynced } from "@/lib/useSynced";
 
 // Size boxes hold a few digits: they keep their on-screen width at large display sizes so the name gets the room.
@@ -25,10 +24,6 @@ export default function Settings() {
   const [baseline, setBaseline] = useState<SettingsT>(settings);
   const [newName, setNewName] = useState("");
   const [newSize, setNewSize] = useState("");
-  const [newFlavour, setNewFlavour] = useState("");
-  const [newVice, setNewVice] = useState("");
-  // The "add a chip" box under each vice, by vice id.
-  const [newChip, setNewChip] = useState<Record<string, string>>({});
   // Display size is per device and applies on tap: outside the draft, so the Save bar never sees it.
   const [display, setDisplay] = useState<DisplayStep>(loadDisplay);
 
@@ -56,38 +51,6 @@ export default function Settings() {
   const u = unitLabel(unit);
   const patch = (p: Partial<SettingsT>) => setDraft({ ...draft, ...p });
   const setBottles = (bottles: Bottle[]) => patch({ bottles });
-  const setVice = (id: string, p: Partial<Vice>) => patch({ vices: draft.vices.map((v) => (v.id === id ? { ...v, ...p } : v)) });
-
-  function addVice() {
-    const name = newVice.trim();
-    if (!name) return;
-    patch({ vices: [...draft.vices, { id: viceIdFor(name, draft.vices), name, chips: [] }] });
-    setNewVice("");
-  }
-  function removeVice(id: string) {
-    // A Pact that covered it stops covering it; its slips stay on record.
-    patch({ vices: draft.vices.filter((v) => v.id !== id), pact: draft.pact && { ...draft.pact, quits: draft.pact.quits.filter((q) => q !== id) } });
-  }
-  function setCleanSince(id: string, value: string) {
-    const rest = draft.vices.map((v) => {
-      if (v.id !== id) return v;
-      const { cleanSince: _old, ...without } = v;
-      void _old;
-      return value ? { ...without, cleanSince: value } : without;
-    });
-    patch({ vices: rest });
-  }
-  function addChip(v: Vice) {
-    const chip = (newChip[v.id] ?? "").trim();
-    if (!chip) return;
-    setVice(v.id, { chips: [...v.chips, chip] });
-    setNewChip({ ...newChip, [v.id]: "" });
-  }
-  function toggleQuit(id: string) {
-    if (!draft.pact) return;
-    const quits = draft.pact.quits.includes(id) ? draft.pact.quits.filter((q) => q !== id) : [...draft.pact.quits, id];
-    patch({ pact: { ...draft.pact, quits } });
-  }
 
   function addBottle() {
     const size = Number(newSize);
@@ -112,8 +75,6 @@ export default function Settings() {
     setDraft(baseline);
     setNewName("");
     setNewSize("");
-    setNewVice("");
-    setNewChip({});
   }
 
   const hours = Array.from({ length: 24 }, (_, h) => h);
@@ -168,92 +129,19 @@ export default function Settings() {
           </div>
         </div>
 
-        <section className="ink-card">
-          <div className="ink-card__head"><span>Flavours</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>coffee</span></div>
-          <ul className="ink-list" style={{ borderTop: 0 }}>
-            {draft.flavours.map((f, i) => (
-              <li key={i} style={{ minHeight: 56, padding: "8px 16px", gap: 8 }}>
-                <input aria-label={`Flavour ${i + 1}`} value={f} onChange={(e) => patch({ flavours: draft.flavours.map((x, j) => (j === i ? e.target.value : x)) })} className="ink-input min-w-0 flex-1" />
-                <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" onClick={() => patch({ flavours: draft.flavours.filter((_, j) => j !== i) })} aria-label={`Remove flavour ${f}`}>{"✕"}</button>
-              </li>
-            ))}
-            <li style={{ minHeight: 56, padding: "8px 16px", gap: 8, borderBottom: 0 }}>
-              <input aria-label="New flavour" placeholder="Pod or place" value={newFlavour} onChange={(e) => setNewFlavour(e.target.value)} className="ink-input min-w-0 flex-1" />
-              <button type="button" className="ink-btn" disabled={!newFlavour.trim()} onClick={() => { patch({ flavours: [...draft.flavours, newFlavour.trim()] }); setNewFlavour(""); }}>Add</button>
-            </li>
-          </ul>
-          <p style={{ margin: 0, padding: "10px 16px 14px", font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>Logging a coffee uses your last flavour; change it on the open coffee. Past coffees keep the name they were logged with.</p>
-        </section>
-
-        <section className="ink-card" aria-label="Vices">
-          <div className="ink-card__head"><span>Vices</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{draft.vices.length ? `${draft.vices.length} tracked` : "off"}</span></div>
-          {draft.vices.map((v) => (
-            <div key={v.id} className="flex flex-col gap-2" style={{ padding: "12px 16px", borderBottom: "2px solid var(--ink-900)" }}>
-              <div className="flex items-center gap-2">
-                <input aria-label={`Name of vice ${v.name || v.id}`} value={v.name} onChange={(e) => setVice(v.id, { name: e.target.value })} className="ink-input min-w-0 flex-1" />
-                <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" onClick={() => removeVice(v.id)} aria-label={`Remove vice ${v.name || v.id}`}>{"✕"}</button>
-              </div>
-              <label className="flex flex-wrap items-center gap-2" style={{ fontSize: 14, color: "var(--ink-700)" }}>
-                clean since
-                <input type="date" className="ink-input mono" style={{ width: 170 }} value={v.cleanSince ?? ""} max={dayKey(new Date())} onChange={(e) => setCleanSince(v.id, e.target.value)} aria-label={`Clean since (${v.name || v.id})`} />
+        <section className="ink-card" aria-label="Floors">
+          <div className="ink-card__head"><span>Floors</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{draft.floorsFrom ? `from ${draft.floorsFrom}` : "last 30 days"}</span></div>
+          <div className="ink-card__body flex flex-col gap-3" style={{ padding: 16 }}>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex min-w-0 flex-col gap-1.5"><span className="eyebrow">Count from</span>
+                <input type="date" value={draft.floorsFrom ?? ""} max={dayKey(new Date())} onChange={(e) => patch({ floorsFrom: e.target.value || null })} className="ink-input mono w-full" aria-label="Floors count from" />
               </label>
-              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={`Chips for ${v.name || v.id}`}>
-                {v.chips.map((c, i) => (
-                  <span key={i} className="flex items-center gap-1">
-                    <input aria-label={`Chip ${i + 1} of ${v.name || v.id}`} value={c} onChange={(e) => setVice(v.id, { chips: v.chips.map((x, j) => (j === i ? e.target.value : x)) })} className="ink-input" style={{ width: "min(140px, 140px / var(--display-scale))", height: 36 }} />
-                    <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" onClick={() => setVice(v.id, { chips: v.chips.filter((_, j) => j !== i) })} aria-label={`Remove chip ${c}`}>{"✕"}</button>
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <input aria-label={`New chip for ${v.name || v.id}`} placeholder="What it can be (e.g. Beer)" value={newChip[v.id] ?? ""} onChange={(e) => setNewChip({ ...newChip, [v.id]: e.target.value })} className="ink-input min-w-0 flex-1" />
-                <button type="button" className="ink-btn" disabled={!(newChip[v.id] ?? "").trim()} onClick={() => addChip(v)}>Add chip</button>
-              </div>
-            </div>
-          ))}
-          <div className="flex items-center gap-2" style={{ minHeight: 56, padding: "8px 16px" }}>
-            <input aria-label="New vice" placeholder="Something to quit" value={newVice} onChange={(e) => setNewVice(e.target.value)} className="ink-input min-w-0 flex-1" />
-            <button type="button" className="ink-btn" disabled={!newVice.trim()} onClick={addVice}>Add</button>
-          </div>
-          <p style={{ margin: 0, padding: "10px 16px 14px", font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>Each vice gets a card on Today with a Slip button. Removing one keeps its slips on record.</p>
-        </section>
-
-        <section className="ink-card" aria-label="Pact">
-          <div className="ink-card__head"><span>Pact</span><span className="mono" style={{ font: "500 13px/1 var(--font-mono)", color: "var(--ink-300)" }}>{draft.pact ? `${draft.pact.days} days` : "off"}</span></div>
-          {draft.pact ? (
-            <div className="ink-card__body flex flex-col gap-3" style={{ padding: 16 }}>
-              <label className="flex flex-col gap-1.5"><span className="eyebrow">Name</span>
-                <input value={draft.pact.name} onChange={(e) => patch({ pact: { ...draft.pact!, name: e.target.value } })} className="ink-input w-full" aria-label="Pact name" />
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="flex min-w-0 flex-col gap-1.5"><span className="eyebrow">Day 1</span>
-                  <input type="date" value={draft.pact.start} onChange={(e) => patch({ pact: { ...draft.pact!, start: e.target.value } })} className="ink-input mono w-full" aria-label="Pact start" />
-                </label>
-                <label className="flex min-w-0 flex-col gap-1.5"><span className="eyebrow">Length (days)</span>
-                  <input type="number" inputMode="numeric" min={1} max={3650} value={draft.pact.days} onChange={(e) => patch({ pact: { ...draft.pact!, days: Number(e.target.value) } })} className="ink-input mono w-full" aria-label="Pact length in days" />
-                </label>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="eyebrow">Covers</span>
-                <div className="flex flex-wrap gap-1.5" role="group" aria-label="Pact covers">
-                  {[{ id: COFFEE_QUIT, name: "Coffee" }, ...draft.vices].map((q) => (
-                    <button key={q.id} type="button" className="ink-chip" aria-pressed={draft.pact!.quits.includes(q.id)} onClick={() => toggleQuit(q.id)}>{q.name || q.id}</button>
-                  ))}
-                </div>
-              </div>
-              <label className="flex flex-col gap-1.5"><span className="eyebrow">Steps floor</span>
+              <label className="flex min-w-0 flex-col gap-1.5"><span className="eyebrow">Steps floor</span>
                 <input type="number" inputMode="numeric" min={1} value={draft.stepsFloor} onChange={(e) => patch({ stepsFloor: Number(e.target.value) })} className="ink-input mono w-full" aria-label="Steps floor" />
               </label>
-              <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>A day is clean when none of the quits it covers happened. Steps show only when a steps source is set up.</p>
-              <button type="button" className="ink-btn ink-btn--ghost" style={{ alignSelf: "flex-start" }} onClick={() => patch({ pact: null })}>Remove Pact</button>
             </div>
-          ) : (
-            <div className="ink-card__body flex flex-col gap-3" style={{ padding: 16 }}>
-              <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>A challenge over your quits, such as 100 days with no coffee: one clean-day score, with each quit underneath.</p>
-              <button type="button" className="ink-btn" style={{ alignSelf: "flex-start" }}
-                onClick={() => patch({ pact: { name: "Pact", start: dayKey(new Date()), days: 100, quits: [COFFEE_QUIT, ...draft.vices.map((v) => v.id)] } })}>Set up a Pact</button>
-            </div>
-          )}
+            <p style={{ margin: 0, font: "400 13px/1.5 var(--font-sans)", color: "var(--ink-700)" }}>The Floors card on Today counts the days you met each floor, from this date to yesterday. Clear the date to count the last 30 days; the card then shows only when a steps source is set up, as do steps.</p>
+          </div>
         </section>
 
         <section className="ink-card">
@@ -345,8 +233,6 @@ function validate(s: SettingsT): string[] {
   if (!(s.floorOz > 0)) out.push("Daily floor must be greater than 0");
   if (s.paceEndH <= s.paceStartH) out.push("The day must end after it starts");
   if (!accentReadable(s.accent)) out.push("Accent is too light for white text (needs 4.5:1)");
-  if (s.flavours.some((f) => !f.trim())) out.push("Every flavour needs a name");
-  if (new Set(s.flavours.map((f) => f.trim())).size !== s.flavours.length) out.push("Flavours must be unique");
-  out.push(...viceProblems(s));
+  out.push(...floorsProblems(s));
   return out;
 }

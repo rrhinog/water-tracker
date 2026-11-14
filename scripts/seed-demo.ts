@@ -25,7 +25,7 @@ async function main() {
   const url = target ? process.env[HOST_URL_VAR[target]] : process.env.DATABASE_URL;
   const name = assertSeedTarget(url);
 
-  const { water, coffee, slips, steps, settings } = generateDemoData(new Date());
+  const { water, steps, settings } = generateDemoData(new Date());
   const client = new Client({ connectionString: url, connectionTimeoutMillis: 10_000 });
   await client.connect();
   try {
@@ -44,20 +44,12 @@ async function main() {
         e.id, e.at, e.bottleId, e.fraction, e.oz, e.untimed ?? false,
       ]);
     }
-    for (const c of coffee) {
-      await client.query("INSERT INTO coffee_entries (id, at, from_notes, finished_at, flavour) VALUES ($1, $2, false, $3, $4)", [
-        c.id, c.at, c.finishedAt ?? null, c.flavour ?? null,
-      ]);
-    }
-    for (const s of slips) {
-      await client.query("INSERT INTO slips (id, vice, at, kind, from_notes) VALUES ($1, $2, $3, $4, false)", [s.id, s.vice, s.at, s.kind ?? null]);
-    }
     for (const d of steps) {
       await client.query(`INSERT INTO ${STEPS_VIEW} (day, steps, synced_at) VALUES ($1, $2, $3)`, [d.day, d.steps, d.syncedAt]);
     }
     await client.query("INSERT INTO settings (key, value) VALUES ('app', $1)", [JSON.stringify(settings)]);
     await client.query("COMMIT");
-    console.log(`seed: ${name} now has ${water.length} water rows, ${coffee.length} coffees, ${slips.length} slips, ${steps.length} days of steps and demo settings`);
+    console.log(`seed: ${name} now has ${water.length} water rows, ${steps.length} days of steps and demo settings`);
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     throw err;

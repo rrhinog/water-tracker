@@ -25,9 +25,6 @@
   /* Cleared days and bars follow the accent unless a theme gives them their own shade. */
   --ink-hit: var(--ink-signal);
   --ink-on-hit: var(--ink-on-signal);
-  /* Coffee marks: plain ink unless a theme colours them. */
-  --coffee: var(--ink-black);
-  --on-coffee: var(--ink-white);
   /* Display size (Settings > Display, per device). The inline script in app/layout.tsx sets
      --display-scale on <html> before first paint; zoom scales every fixed px in the app with it. */
   --display-scale: 1;
@@ -58,8 +55,6 @@
   --ink-on-signal: #ffffff;
   --ink-hit: #155a86;
   --ink-on-hit: #ffffff;
-  --coffee: #7a4a2b;
-  --on-coffee: #ffffff;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-accent="squirtle"] {
@@ -67,8 +62,6 @@
     --ink-on-signal: #141414;
     --ink-hit: #7cc7e8;
     --ink-on-hit: #141414;
-    --coffee: #d9a55b;
-    --on-coffee: #141414;
   }
 }
 
@@ -111,9 +104,6 @@ input[type="range"].ink-range:focus-visible { outline: 2px solid var(--ink-black
 /* Calendar cells. */
 .cal-cell { display: grid; place-items: center; aspect-ratio: 1; border-radius: 6px; font: 500 12px/1 var(--font-mono); border: 2px solid var(--ink-300); color: var(--ink-700); }
 .cal-cell.hit { background: var(--ink-hit); color: var(--ink-on-hit); border-color: var(--ink-hit); }
-.cal-cell.coffee { background: var(--coffee); color: var(--on-coffee); border-color: var(--coffee); }
-.cal-cell.slip { background: var(--ink-black); color: var(--ink-white); border-color: var(--ink-black); }
-.coffee-btn, .coffee-btn:hover { background: var(--coffee); border-color: var(--coffee); color: var(--on-coffee); }
 .cal-cell.miss { border-color: var(--ink-black); color: var(--ink-black); }
 .cal-cell.today { outline: 2px solid var(--ink-black); outline-offset: 2px; }
 

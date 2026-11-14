@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import type { StepsResponse } from "./steps";
 import { loadSteps, saveSteps } from "./storage";
-import type { StepsDay } from "./vices";
+import type { StepsDay } from "./floors";
 
 export function useSteps(): { days: StepsDay[]; enabled: boolean; unreachable: boolean } {
   const [days, setDays] = useState<StepsDay[]>(loadSteps);

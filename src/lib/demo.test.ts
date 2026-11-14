@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FRACTIONS } from "./bottles";
 import { STARTED, bottleDurations } from "./duration";
-import { DEMO_DAYS, DEMO_PACT_DAYS_IN, DEMO_VICES, generateDemoData, seededRandom } from "./demo";
+import { DEMO_DAYS, DEMO_FLOORS_DAYS_IN, generateDemoData, seededRandom } from "./demo";
 import { dayKey, entriesForDay } from "./log";
 import { DEFAULT_SETTINGS, normalizeSettings } from "./settings";
 
@@ -29,7 +29,7 @@ describe("generateDemoData", () => {
     expect(days.size).toBe(DEMO_DAYS);
     expect(days.has(dayKey(NOW))).toBe(true);
     expect(days.has(dayKey(new Date(2026, 8, 24 - DEMO_DAYS + 1)))).toBe(true);
-    const all = [...data.water.map((e) => e.at), ...data.coffee.flatMap((c) => [c.at, c.finishedAt ?? c.at])];
+    const all = data.water.map((e) => e.at);
     expect(all.every((t) => new Date(t).getTime() <= NOW.getTime())).toBe(true);
   });
 
@@ -44,39 +44,22 @@ describe("generateDemoData", () => {
       else expect(e.oz).toBeGreaterThan(0);
       expect(Number.isNaN(Date.parse(e.at))).toBe(false);
     }
-    for (const c of data.coffee) {
-      ids.add(c.id);
-      expect(DEFAULT_SETTINGS.flavours).toContain(c.flavour);
-      if (c.finishedAt) expect(c.finishedAt > c.at).toBe(true);
-    }
-    expect(ids.size).toBe(data.water.length + data.coffee.length);
-    expect(data.coffee.length).toBeGreaterThan(5);
+    expect(ids.size).toBe(data.water.length);
   });
 
-  it("uses DEFAULT_SETTINGS (a copy, not the shared object) with the demo vices and Pact switched on", () => {
-    const { vices, pact, ...rest } = data.settings;
-    const { vices: _v, pact: _p, ...defaults } = DEFAULT_SETTINGS;
-    void _v; void _p;
+  it("uses DEFAULT_SETTINGS (a copy, not the shared object) with a demo count-from date for the Floors", () => {
+    const { floorsFrom, ...rest } = data.settings;
+    const { floorsFrom: _f, ...defaults } = DEFAULT_SETTINGS;
+    void _f;
     expect(rest).toEqual(defaults);
     expect(data.settings).not.toBe(DEFAULT_SETTINGS);
-    expect(DEFAULT_SETTINGS.vices).toEqual([]);
-    expect(vices.map((v) => v.id)).toEqual(DEMO_VICES.map((v) => v.id));
-    expect(pact).toEqual({ name: "100-day Pact", start: dayKey(new Date(2026, 8, 24 - DEMO_PACT_DAYS_IN)), days: 100, quits: ["alcohol", "sweets", "coffee"] });
+    expect(DEFAULT_SETTINGS.floorsFrom).toBeNull();
+    expect(floorsFrom).toBe(dayKey(new Date(2026, 8, 24 - DEMO_FLOORS_DAYS_IN)));
     expect(normalizeSettings(data.settings)).toEqual(data.settings);
   });
 
-  it("makes demo slips on demo vices with their chips, none in the future or the three days before today", () => {
-    expect(data.slips.length).toBeGreaterThan(5);
-    for (const s of data.slips) {
-      const vice = DEMO_VICES.find((v) => v.id === s.vice)!;
-      expect(vice.chips).toContain(s.kind);
-      expect(new Date(s.at).getTime()).toBeLessThanOrEqual(NOW.getTime());
-    }
-    for (let back = 1; back <= 3; back++) {
-      const k = dayKey(new Date(2026, 8, 24 - back));
-      expect(data.slips.some((s) => dayKey(new Date(s.at)) === k)).toBe(false);
-    }
-    expect(new Set(data.slips.map((s) => s.id)).size).toBe(data.slips.length);
+  it("has nothing but water, steps and settings", () => {
+    expect(Object.keys(data).sort()).toEqual(["settings", "steps", "water"]);
   });
 
   it("makes a steps row per day, today's as of a sync that already happened", () => {
@@ -100,11 +83,7 @@ describe("generateDemoData", () => {
     expect(today.map((e) => e.bottleId)).toEqual([STARTED]);
   });
 
-  it("leaves the days before today coffee-free and past days near the floor", () => {
-    for (let back = 1; back <= 4; back++) {
-      const k = dayKey(new Date(2026, 8, 24 - back));
-      expect(data.coffee.some((c) => dayKey(new Date(c.at)) === k)).toBe(false);
-    }
+  it("leaves past days near the floor", () => {
     const yesterday = entriesForDay(data.water, new Date(2026, 8, 23)).reduce((s, e) => s + e.oz, 0);
     expect(yesterday).toBeGreaterThan(50);
   });

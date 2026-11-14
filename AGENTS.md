@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Water Tracker: working in this repo
 
-A self-hosted water and coffee tracker: Next.js (App Router), TypeScript, Tailwind for layout with the
+A self-hosted water and steps tracker: Next.js (App Router), TypeScript, Tailwind for layout with the
 Ink Kit stylesheet, Drizzle + `pg`, vitest, Docker. **This repository is public**: every file, commit
 message and pull request is published.
 
@@ -54,8 +54,8 @@ message and pull request is published.
 - `e2e/` the main-path browser test (`bun run e2e`; refuses any app without the STAGING bar)
 - `drizzle/` SQL migrations, applied by `scripts/migrate.ts`
 - `scripts/` `deploy.ps1`, `migrate.ts`, `seed-demo.ts`, `backup.ts`, `restore-check.ts`, `restore.ts`,
-  `ci-status.ts`, `release-notes.sh`, `import-slips.ts`
-- `docs/specs/` feature specs (`vices.md`: vices, the Pact and Floors)
+  `ci-status.ts`, `release-notes.sh`
+- `docs/specs/` feature specs (`split.md`: what 2.0 removed, what stays until a later release, and the Floors window)
 - `.github/workflows/` CI (`check`, `secrets`, `audit` on every pull request) and Release (a tag publishes
   the GitHub Release from CHANGELOG.md)
 

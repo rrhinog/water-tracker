@@ -2,10 +2,10 @@
 
 import { Fragment, useEffect, useState, type ReactNode } from "react";
 import Shell from "@/components/Shell";
-import { FloorsCard, PactCard, ViceCard } from "@/components/Vices";
+import { FloorsCard, floorsLabel } from "@/components/Floors";
 import { FRACTIONS, fractionLabel, type Fraction } from "@/lib/bottles";
-import { coffeeDays, coffeeStatus, finishCoffee, formatMinutes, isOpen, lastFlavour, makeCoffee, sipWindow } from "@/lib/coffee";
 import { bottleDurations, drinks, formatDuration, isStart, makeStartEntry } from "@/lib/duration";
+import { floorWindow, stepsSummary, tallyWhere } from "@/lib/floors";
 import { buildDays, clearedDayProfiles } from "@/lib/history";
 import { byTime, dayKey, entriesForDay, lastDrink, makeCustomEntry, makeEntry, recentCustomAmounts, refillOf, totalOz, type Entry } from "@/lib/log";
 import { curveFromDays, formatHour, paceStatus, type PaceMode } from "@/lib/pace";
@@ -14,7 +14,6 @@ import { loadBottle, loadPaceMode, saveBottle, savePaceMode } from "@/lib/storag
 import { makeUndo, undoMessage, type Undo } from "@/lib/undo";
 import { useSteps } from "@/lib/useSteps";
 import { useSynced } from "@/lib/useSynced";
-import { COFFEE_QUIT, floorWindow, pactStatus, slipDays, stepsSummary, tallyWhere, type Slip } from "@/lib/vices";
 import { retime, timeValue, YESTERDAY_DEFAULT_TIME, yesterdayAt } from "@/lib/when";
 
 const DAY_FMT = new Intl.DateTimeFormat([], { weekday: "short", day: "numeric", month: "short" });
@@ -22,15 +21,8 @@ const TIME_FMT = new Intl.DateTimeFormat([], { hour: "numeric", minute: "2-digit
 
 export default function Tracker() {
   // Loaded with ssr: false (see page.tsx), so localStorage is readable in lazy initializers.
-  const { entries, coffees, slips, settings, offline, addEntry, updateEntry, removeEntry, addCoffee, updateCoffee, removeCoffee, addSlip, updateSlip, removeSlip } = useSynced();
+  const { entries, settings, offline, addEntry, updateEntry, removeEntry } = useSynced();
   const steps = useSteps();
-  // A ticking clock so an open coffee's elapsed time updates once a minute.
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 60_000);
-    return () => clearInterval(id);
-  }, []);
-  void tick;
   const { bottles, floorOz, unit } = settings;
   const window = { startH: settings.paceStartH, endH: settings.paceEndH };
   const u = unitLabel(unit);
@@ -44,7 +36,7 @@ export default function Tracker() {
   const [forYesterday, setForYesterday] = useState(false);
   const [yesterdayTime, setYesterdayTime] = useState(YESTERDAY_DEFAULT_TIME);
   // The undo bar after the latest log; it closes itself when the window runs out.
-  // `from` is the control it floats next to: the Log button, the refilled row, or the coffee button.
+  // `from` is the control it floats next to: the Log button or the refilled row.
   const [undo, setUndo] = useState<(Undo & { from: UndoFrom }) | null>(null);
   useEffect(() => {
     if (!undo) return;
@@ -98,9 +90,7 @@ export default function Tracker() {
   }
   function undoLast() {
     if (!undo) return;
-    if (undo.kind === "entry") removeEntry(undo.id);
-    else if (undo.kind === "slip") removeSlip(undo.id);
-    else removeCoffee(undo.id);
+    removeEntry(undo.id);
     setUndo(null);
   }
   function saveTime(e: Entry) {
@@ -131,96 +121,26 @@ export default function Tracker() {
   const durations = bottleDurations(today);
   const ownCurve = curveFromDays(clearedDayProfiles(entries, floorOz));
   const pace = paceStatus(paceMode, total, now, firstAt, floorOz, window, ownCurve);
-  const coffee = coffeeStatus(coffees, now);
-  const todayCoffees = coffees.filter((c) => !c.fromNotes && dayKey(new Date(c.at)) === dayKey(now));
-  const openCoffee = coffees.find((c) => isOpen(c, now)) ?? null;
-  const flavours = settings.flavours;
-  const defaultFlavour = lastFlavour(coffees) ?? flavours[0];
-  const logCoffee = () => {
-    const c = makeCoffee(new Date(), defaultFlavour);
-    addCoffee(c);
-    setUndo({ ...makeUndo("coffee", c.id, undoMessage("coffee"), new Date().getTime()), from: "coffee" });
-  };
-  const logSlip = (s: Slip) => {
-    addSlip(s);
-    const kind = s.kind ?? null;
-    setUndo({ ...makeUndo("slip", s.id, undoMessage({ slip: kind, yesterday: dayKey(new Date(s.at)) !== dayKey(new Date()) }), new Date().getTime()), from: `vice:${s.vice}` });
-  };
   // The bar goes as soon as its row does (removed by hand), not only when the time runs out.
-  const undoRows: readonly { id: string }[] = undo?.kind === "entry" ? entries : undo?.kind === "slip" ? slips : coffees;
-  const undoShown = undo && undoRows.some((r) => r.id === undo.id) ? undo : null;
+  const undoShown = undo && entries.some((r) => r.id === undo.id) ? undo : null;
   const undoBar = (from: UndoFrom) => (undoShown?.from === from ? <UndoBar message={undoShown.message} onUndo={undoLast} /> : null);
-  const elapsedOf = (c: { at: string }) => formatMinutes(Math.round((now.getTime() - new Date(c.at).getTime()) / 60000));
-  const coffeeRow = (c: (typeof coffees)[number], last = false) => {
-    const open = isOpen(c, now);
-    const w = sipWindow(c, now);
-    return (
-      <li key={c.id} style={{ fontSize: 15, minHeight: 48, borderBottom: last ? 0 : undefined }}>
-        <span style={{ minWidth: 0 }}>
-          {c.flavour ?? "Coffee"}
-          <span className="ink-list__meta" style={{ display: "block", marginTop: 4 }}>
-            <Meta parts={[TIME_FMT.format(new Date(c.at)), open ? `open ${elapsedOf(c)}` : w ? `finished ${formatMinutes(w.minutes)}${w.assumed ? " (assumed)" : ""}` : null]} />
-          </span>
-          {open && flavours.length > 1 && (
-            <span className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Flavour">
-              {flavours.map((f) => (
-                <button key={f} type="button" className="ink-chip" style={{ height: 32, padding: "0 10px", fontSize: 12 }} aria-pressed={c.flavour === f} onClick={() => updateCoffee({ ...c, flavour: f })}>{f}</button>
-              ))}
-            </span>
-          )}
-        </span>
-        <span className="flex items-center gap-2">
-          {open && (
-            <button type="button" className="ink-btn coffee-btn ink-btn--sm" onClick={() => updateCoffee(finishCoffee(c, new Date()))}>Finished</button>
-          )}
-          <button type="button" className="ink-btn ink-btn--ghost ink-btn--sm ink-btn--icon" aria-label="Remove coffee" onClick={() => removeCoffee(c.id)}>{"✕"}</button>
-        </span>
-      </li>
-    );
-  };
 
-  // Vices, the Pact and the Floors. Coffee days count as missed days for the Pact's coffee quit.
-  const { vices, pact } = settings;
+  // The Floors: from the count-from date in Settings, else the last 30 days.
   const todayKey = dayKey(now);
-  const misses = new Map<string, Set<string>>([[COFFEE_QUIT, coffeeDays(coffees)], ...vices.map((v) => [v.id, slipDays(slips, v.id)] as [string, Set<string>])]);
-  const pactNow = pact ? pactStatus(pact, misses, todayKey) : null;
-  const floors = floorWindow(pact, todayKey);
+  const floors = floorWindow(settings.floorsFrom, todayKey);
   const waterDays = buildDays(entries, floorOz);
   const waterTally = tallyWhere(floors, (k) => !!waterDays.get(k)?.cleared);
   const stepsNow = steps.enabled && steps.days.length > 0 ? stepsSummary(steps.days, settings.stepsFloor, floors, todayKey) : null;
-  const showFloors = !!pact || steps.enabled;
+  const showFloors = settings.floorsFrom !== null || steps.enabled;
 
   // Direction in words, never colour (kit rule).
   const paceWord = cleared ? "Done for the day" : pace.delta >= 0 ? `▲ ${fmt(pace.delta, unit)} ahead` : `▼ ${fmt(Math.abs(pace.delta), unit)} behind`;
   const nextWord = cleared ? "" : pace.delta < 0 ? "drink now" : pace.nextDueH !== null ? `next by ${formatHour(pace.nextDueH)}` : "";
   const firstWord = `first bottle by ${formatHour(pace.firstBottleByH)}${pace.firstBottleDone ? " · done" : pace.firstBottleMissed ? " · missed" : ""}`;
 
-  const coffeeCard = (
-    <>
-      <span className="eyebrow">Coffee-free streak</span>
-      <p style={{ margin: "6px 0 0", font: "600 26px/1 var(--font-mono)" }}>
-        {coffee.streak} <span style={{ font: "400 14px/1 var(--font-sans)", color: "var(--ink-700)" }}>{coffee.streak === 1 ? "day" : "days"}</span>
-      </p>
-      <p className="ink-list__meta" style={{ margin: "6px 0 12px" }}>
-        {coffee.todayCount === 0 ? "today: clean so far" : `${coffee.todayCount} today · resets tomorrow`}
-      </p>
-      <div className="undo-anchor">
-        {openCoffee ? (
-          <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>
-            Finished ({elapsedOf(openCoffee)})
-          </button>
-        ) : (
-          <button type="button" className="ink-btn coffee-btn ink-btn--sm" style={{ width: "100%" }} onClick={logCoffee}>
-            Log a coffee
-          </button>
-        )}
-        {undoBar("coffee")}
-      </div>
-    </>
-  );
 
   return (
-    <Shell aside={coffeeCard} offline={offline}>
+    <Shell offline={offline}>
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 p-4 lg:max-w-none lg:gap-6 lg:p-10">
         <header className="flex flex-wrap items-end justify-between gap-y-2">
           <div className="flex flex-col gap-1">
@@ -346,39 +266,9 @@ export default function Tracker() {
           </div>
 
           <div className="flex flex-col gap-4 lg:gap-6">
-            {pact && pactNow && <PactCard pact={pact} status={pactNow} vices={vices} />}
-
-            <section className="ink-card lg:hidden">
-              <div className="ink-card__head undo-anchor">
-                <span>Coffee-free streak</span>
-                {openCoffee ? (
-                  <button type="button" className="ink-btn coffee-btn" onClick={() => updateCoffee(finishCoffee(openCoffee, new Date()))}>Finished</button>
-                ) : (
-                  <button type="button" className="ink-btn coffee-btn" onClick={logCoffee}>+ Coffee</button>
-                )}
-                {undoBar("coffee")}
-              </div>
-              {/* Wraps: at large display sizes the badge drops under the streak instead of widening the page. */}
-              <div className="ink-card__body flex flex-wrap items-baseline justify-between" style={{ padding: "14px 24px", rowGap: 8, columnGap: 12 }}>
-                <span style={{ font: "600 26px/1 var(--font-mono)" }}>
-                  {coffee.streak} <span style={{ font: "400 14px/1 var(--font-sans)", color: "var(--ink-700)" }}>{coffee.streak === 1 ? "day" : "days"}</span>
-                </span>
-                <span className="ink-badge">{coffee.todayCount === 0 ? "clean so far" : `${coffee.todayCount} today · resets tomorrow`}</span>
-              </div>
-              {todayCoffees.length > 0 && (
-                <ul className="ink-list" style={{ borderTop: "2px solid var(--ink-900)" }}>
-                  {[...todayCoffees].reverse().map((c) => coffeeRow(c))}
-                </ul>
-              )}
-            </section>
-
-            {vices.map((v) => (
-              <ViceCard key={v.id} vice={v} slips={slips} now={now} undoBar={undoBar(`vice:${v.id}`)} onLogged={logSlip} onUpdate={updateSlip} onRemove={removeSlip} />
-            ))}
-
             {showFloors && (
               <FloorsCard
-                windowLabel={pact ? "since day 1" : "last 30 days"} water={waterTally} waterToday={fmt(total, unit)}
+                windowLabel={floorsLabel(settings.floorsFrom)} water={waterTally} waterToday={fmt(total, unit)}
                 steps={stepsNow} stepsFloor={settings.stepsFloor} stepsState={!steps.enabled ? "off" : stepsNow ? "ok" : steps.unreachable ? "unreachable" : "ok"} now={now}
               />
             )}
@@ -434,14 +324,6 @@ export default function Tracker() {
               )}
             </section>
 
-            {todayCoffees.length > 0 && (
-              <section className="ink-card hidden lg:block">
-                <div className="ink-card__head"><span>Coffee today</span><span className="ink-badge">{todayCoffees.length}</span></div>
-                <ul className="ink-list" style={{ borderTop: 0 }}>
-                  {[...todayCoffees].reverse().map((c, i, arr) => coffeeRow(c, i === arr.length - 1))}
-                </ul>
-              </section>
-            )}
           </div>
         </div>
       </main>
@@ -449,7 +331,7 @@ export default function Tracker() {
   );
 }
 
-type UndoFrom = "log" | "refill" | "coffee" | `vice:${string}`;
+type UndoFrom = "log" | "refill";
 
 /**
  * "Logged 36 oz · Undo", floating next to the control that logged (its .undo-anchor parent). Out of

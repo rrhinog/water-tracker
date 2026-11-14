@@ -1,9 +1,9 @@
-// Steps from an optional outside source (docs/specs/vices.md, "Steps"). Pure; /api/steps does the I/O.
+// Steps from an optional outside source (docs/specs/split.md, "Floors window"). Pure; /api/steps does the I/O.
 //
 // STEPS_DATABASE_URL points at a read-only Postgres login that can read one view, daily_steps
 // (day date, steps integer, synced_at timestamptz). Unset or empty: no steps anywhere in the app.
 import { isIsoDay } from "./settings";
-import type { StepsDay } from "./vices";
+import type { StepsDay } from "./floors";
 
 /** The view the app reads, and the only thing its login needs to see. */
 export const STEPS_VIEW = "daily_steps";

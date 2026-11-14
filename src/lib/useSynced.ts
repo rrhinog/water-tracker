@@ -2,15 +2,13 @@
 
 // One hook owns the data: local cache for instant render, server for truth across devices.
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { CoffeeEntry } from "./coffee";
 import { byTime, type Entry } from "./log";
 import { DEFAULT_ACCENT, isTheme } from "./color";
 import type { Settings } from "./settings";
-import { loadCoffee, loadEntries, loadSettings, loadSlips, saveCoffee, saveEntries, saveSettings, saveSlips } from "./storage";
+import { loadEntries, loadSettings, saveEntries, saveSettings } from "./storage";
 import { mergeWithServer } from "./merge";
 import { offlineNote } from "./pending";
-import { fetchCoffee, fetchEntries, fetchSettings, fetchSlips, flushPending, loadPending, putSettings, sendOrQueue, type Op } from "./sync";
-import type { Slip } from "./vices";
+import { fetchEntries, fetchSettings, flushPending, loadPending, putSettings, sendOrQueue, type Op } from "./sync";
 
 /** How often to retry while the server can't be reached (also retried on `online` and on return to the app). */
 const RETRY_MS = 15_000;
@@ -20,8 +18,6 @@ export type SaveState = "idle" | "saving" | "saved" | "failed";
 
 export function useSynced() {
   const [entries, setEntries] = useState<Entry[]>(loadEntries);
-  const [coffees, setCoffees] = useState<CoffeeEntry[]>(loadCoffee);
-  const [slips, setSlips] = useState<Slip[]>(loadSlips);
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [settingsSave, setSettingsSave] = useState<SaveState>("idle");
   const [settingsSavedAt, setSettingsSavedAt] = useState<Date | null>(null);
@@ -54,7 +50,8 @@ export function useSynced() {
   // Flush the queue, then pull the server's view. Runs on load and again whenever a retry is due.
   const refresh = useCallback(async (isCancelled: () => boolean = () => false) => {
     try {
-      // 1. Send anything queued from an earlier offline tap, in order, and a Save that failed.
+      // 1. Send anything queued from an earlier offline tap, in order (a coffee or slip queued under 1.x
+      //    included: see src/lib/sync.ts), and a Save that failed.
       await flushPending();
       if (settingsUnsent.current) {
         if (!(await putSettings(loadSettings()))) throw new Error("settings still unsent");
@@ -63,7 +60,7 @@ export function useSynced() {
         setSettingsSavedAt(new Date());
       }
       // 2. Pull the server's view.
-      const [serverEntries, serverCoffee, serverSlips, serverSettings] = await Promise.all([fetchEntries(), fetchCoffee(), fetchSlips(), fetchSettings()]);
+      const [serverEntries, serverSettings] = await Promise.all([fetchEntries(), fetchSettings()]);
       if (isCancelled()) return;
       setSettings(serverSettings);
       saveSettings(serverSettings);
@@ -71,14 +68,8 @@ export function useSynced() {
       //    anything else was deleted elsewhere and must not be re-uploaded (see merge.ts).
       const queued = loadPending();
       const mergedEntries = mergeWithServer(serverEntries, loadEntries(), queued, "entry");
-      const mergedCoffee = mergeWithServer(serverCoffee, loadCoffee(), queued, "coffee");
-      const mergedSlips = mergeWithServer(serverSlips, loadSlips(), queued, "slip");
       setEntries(mergedEntries);
       saveEntries(mergedEntries);
-      setCoffees(mergedCoffee);
-      saveCoffee(mergedCoffee);
-      setSlips(mergedSlips);
-      saveSlips(mergedSlips);
       setQueue(queued);
       setSync(queued.length === 0 ? "synced" : "offline");
     } catch {
@@ -130,26 +121,9 @@ export function useSynced() {
       return next;
     });
   }
-  function changeCoffees(f: (prev: CoffeeEntry[]) => CoffeeEntry[]) {
-    setCoffees((prev) => {
-      const next = f(prev);
-      saveCoffee(next);
-      return next;
-    });
-  }
-
-  function changeSlips(f: (prev: Slip[]) => Slip[]) {
-    setSlips((prev) => {
-      const next = f(prev);
-      saveSlips(next);
-      return next;
-    });
-  }
 
   return {
     entries,
-    coffees,
-    slips,
     settings,
     sync,
     pending: queue.length,
@@ -182,31 +156,6 @@ export function useSynced() {
     removeEntry(id: string) {
       changeEntries((prev) => prev.filter((e) => e.id !== id));
       void track(sendOrQueue({ kind: "delete-entry", id }));
-    },
-    addCoffee(entry: CoffeeEntry) {
-      changeCoffees((prev) => [...prev, entry]);
-      void track(sendOrQueue({ kind: "upsert-coffee", entry }));
-    },
-    updateCoffee(entry: CoffeeEntry) {
-      changeCoffees((prev) => prev.map((c) => (c.id === entry.id ? entry : c)));
-      void track(sendOrQueue({ kind: "upsert-coffee", entry }));
-    },
-    removeCoffee(id: string) {
-      changeCoffees((prev) => prev.filter((c) => c.id !== id));
-      void track(sendOrQueue({ kind: "delete-coffee", id }));
-    },
-    /** A slip (now, or an earlier time such as last night); the list stays in time order. */
-    addSlip(entry: Slip) {
-      changeSlips((prev) => byTime([...prev, entry]));
-      void track(sendOrQueue({ kind: "upsert-slip", entry }));
-    },
-    updateSlip(entry: Slip) {
-      changeSlips((prev) => byTime(prev.map((s) => (s.id === entry.id ? entry : s))));
-      void track(sendOrQueue({ kind: "upsert-slip", entry }));
-    },
-    removeSlip(id: string) {
-      changeSlips((prev) => prev.filter((s) => s.id !== id));
-      void track(sendOrQueue({ kind: "delete-slip", id }));
     },
   };
 }
